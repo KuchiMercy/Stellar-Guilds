@@ -1,4 +1,4 @@
-﻿#![cfg(test)]
+#![cfg(test)]
 
 use crate::{StellarGuildsContract, StellarGuildsContractClient};
 use soroban_sdk::{testutils::Address as _, Address, Env};
@@ -10,7 +10,7 @@ fn test_initialize_success() {
     let client = StellarGuildsContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
-    
+
     // First initialization should succeed
     assert!(client.initialize(&admin));
 }
@@ -23,9 +23,9 @@ fn test_initialize_twice_panics() {
     let client = StellarGuildsContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
-    
+
     client.initialize(&admin);
-    
+
     // Second initialization should panic
     client.initialize(&admin);
 }

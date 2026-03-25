@@ -1,4 +1,4 @@
-﻿/// Standardized event types for the Stellar Guilds platform.
+/// Standardized event types for the Stellar Guilds platform.
 ///
 /// Every event emitted across all contract modules is wrapped in a consistent
 /// `EventEnvelope` that carries versioning, timing, and correlation metadata.
@@ -18,7 +18,6 @@
 /// Never call `env.events().publish()` directly from module code.
 /// Always go through `emit::emit_event()` so the envelope is populated
 /// consistently and the sequence counter is incremented atomically.
-
 use soroban_sdk::{contracttype, Symbol};
 
 /// Current event schema version. Increment on any breaking envelope change.

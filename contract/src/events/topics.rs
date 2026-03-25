@@ -1,4 +1,4 @@
-﻿/// Standardized event topic constants for all Stellar Guilds contract modules.
+/// Standardized event topic constants for all Stellar Guilds contract modules.
 ///
 /// Topics are two-element tuples of `(module, action)` Symbols that Stellar's
 /// event system uses for efficient filtering. All module code must use the
@@ -22,63 +22,68 @@
 
 // =========== Module identifiers ===========
 
-pub const MOD_GUILD: &str        = "guild";
-pub const MOD_BOUNTY: &str       = "bounty";
-pub const MOD_PAYMENT: &str      = "payment";
-pub const MOD_TREASURY: &str     = "treasury";
-pub const MOD_MILESTONE: &str    = "milestone";
-pub const MOD_GOVERNANCE: &str   = "governance";
-pub const MOD_REPUTATION: &str   = "reputation";
-pub const MOD_DISPUTE: &str      = "dispute";
+pub const MOD_GUILD: &str = "guild";
+pub const MOD_BOUNTY: &str = "bounty";
+pub const MOD_PAYMENT: &str = "payment";
+pub const MOD_TREASURY: &str = "treasury";
+pub const MOD_MILESTONE: &str = "milestone";
+pub const MOD_GOVERNANCE: &str = "governance";
+pub const MOD_REPUTATION: &str = "reputation";
+pub const MOD_DISPUTE: &str = "dispute";
 pub const MOD_SUBSCRIPTION: &str = "subscription";
-pub const MOD_MULTISIG: &str     = "multisig";
-pub const MOD_ALLOWANCE: &str    = "allowance";
-pub const MOD_EMERGENCY: &str    = "emergency";
-pub const MOD_UPGRADE: &str      = "upgrade";
-pub const MOD_PROXY: &str        = "proxy";
+pub const MOD_MULTISIG: &str = "multisig";
+pub const MOD_ALLOWANCE: &str = "allowance";
+pub const MOD_EMERGENCY: &str = "emergency";
+pub const MOD_UPGRADE: &str = "upgrade";
+pub const MOD_PROXY: &str = "proxy";
+pub const MOD_INTEGRATION: &str = "integration";
 
 // =========== Shared action identifiers (used across multiple modules) ===========
 
-pub const ACT_CREATED: &str    = "created";
-pub const ACT_UPDATED: &str    = "updated";
-pub const ACT_CANCELLED: &str  = "cancelled";
-pub const ACT_EXECUTED: &str   = "executed";
-pub const ACT_APPROVED: &str   = "approved";
-pub const ACT_REJECTED: &str   = "rejected";
-pub const ACT_RELEASED: &str   = "released";
-pub const ACT_EXPIRED: &str    = "expired";
-pub const ACT_PAUSED: &str     = "paused";
-pub const ACT_RESUMED: &str    = "resumed";
-pub const ACT_FUNDED: &str     = "funded";
-pub const ACT_FAILED: &str     = "failed";
+pub const ACT_CREATED: &str = "created";
+pub const ACT_UPDATED: &str = "updated";
+pub const ACT_CANCELLED: &str = "cancelled";
+pub const ACT_EXECUTED: &str = "executed";
+pub const ACT_APPROVED: &str = "approved";
+pub const ACT_REJECTED: &str = "rejected";
+pub const ACT_RELEASED: &str = "released";
+pub const ACT_EXPIRED: &str = "expired";
+pub const ACT_PAUSED: &str = "paused";
+pub const ACT_RESUMED: &str = "resumed";
+pub const ACT_FUNDED: &str = "funded";
+pub const ACT_FAILED: &str = "failed";
+pub const ACT_EMITTED: &str = "emitted";
+pub const ACT_RECORDED: &str = "recorded";
+pub const ACT_ACCEPTED: &str = "accepted";
+pub const ACT_TRANSFERRED: &str = "transferred";
 
 // =========== Guild-specific actions ===========
 
-pub const ACT_MEMBER_ADDED: &str   = "member_added";
+pub const ACT_MEMBER_ADDED: &str = "member_added";
 pub const ACT_MEMBER_REMOVED: &str = "member_removed";
-pub const ACT_ROLE_UPDATED: &str   = "role_updated";
+pub const ACT_ROLE_UPDATED: &str = "role_updated";
 
 // =========== Bounty-specific actions ===========
 
-pub const ACT_CLAIMED: &str    = "claimed";
-pub const ACT_SUBMITTED: &str  = "submitted";
+pub const ACT_CLAIMED: &str = "claimed";
+pub const ACT_SUBMITTED: &str = "submitted";
 
 // =========== Payment-specific actions ===========
 
 pub const ACT_RECIPIENT_ADDED: &str = "recipient_added";
-pub const ACT_DISTRIBUTED: &str     = "distributed";
+pub const ACT_DISTRIBUTED: &str = "distributed";
 
 // =========== Governance-specific actions ===========
 
-pub const ACT_VOTED: &str      = "voted";
-pub const ACT_DELEGATED: &str  = "delegated";
-pub const ACT_FINALIZED: &str  = "finalized";
-pub const ACT_PROPOSED: &str   = "proposed";
+pub const ACT_VOTED: &str = "voted";
+pub const ACT_DELEGATED: &str = "delegated";
+pub const ACT_FINALIZED: &str = "finalized";
+pub const ACT_PROPOSED: &str = "proposed";
 
 // =========== Milestone-specific actions ===========
 
-pub const ACT_STARTED: &str    = "started";
-pub const ACT_COMPLETED: &str  = "completed";
+pub const ACT_STARTED: &str = "started";
+pub const ACT_COMPLETED: &str = "completed";
 
 // =========== Reputation-specific actions ===========
 
@@ -87,33 +92,33 @@ pub const ACT_BADGE_EARNED: &str = "badge_earned";
 
 // =========== Dispute-specific actions ===========
 
-pub const ACT_EVIDENCE: &str   = "evidence";
-pub const ACT_VOTE_CAST: &str  = "vote_cast";
-pub const ACT_RESOLVED: &str   = "resolved";
+pub const ACT_EVIDENCE: &str = "evidence";
+pub const ACT_VOTE_CAST: &str = "vote_cast";
+pub const ACT_RESOLVED: &str = "resolved";
 
 // =========== Subscription-specific actions ===========
 
-pub const ACT_SUBSCRIBED: &str      = "subscribed";
-pub const ACT_PLAN_CREATED: &str    = "plan_created";
-pub const ACT_TIER_CHANGED: &str    = "tier_changed";
+pub const ACT_PLAN_CREATED: &str = "plan_created";
+pub const ACT_TIER_CHANGED: &str = "tier_changed";
 pub const ACT_PAYMENT_PROCESSED: &str = "payment_ok";
-pub const ACT_PAYMENT_FAILED: &str  = "payment_fail";
+pub const ACT_PAYMENT_FAILED: &str = "payment_fail";
 pub const ACT_PAYMENT_RETRIED: &str = "payment_retry";
+pub const ACT_GRACE_STARTED: &str = "grace_started";
 
 // =========== Multisig-specific actions ===========
 
-pub const ACT_PROPOSED_OP: &str  = "proposed_op";
-pub const ACT_SIGNED: &str       = "signed";
+pub const ACT_PROPOSED_OP: &str = "proposed_op";
+pub const ACT_SIGNED: &str = "signed";
 pub const ACT_SIGNER_ADDED: &str = "signer_added";
 pub const ACT_SIGNER_REMOVED: &str = "signer_removed";
-pub const ACT_FROZEN: &str       = "frozen";
-pub const ACT_UNFROZEN: &str     = "unfrozen";
-pub const ACT_POLICY_SET: &str   = "policy_set";
+pub const ACT_FROZEN: &str = "frozen";
+pub const ACT_UNFROZEN: &str = "unfrozen";
+pub const ACT_POLICY_SET: &str = "policy_set";
 
 // =========== Allowance-specific actions ===========
 
-pub const ACT_GRANTED: &str   = "granted";
-pub const ACT_REVOKED: &str   = "revoked";
+pub const ACT_GRANTED: &str = "granted";
+pub const ACT_REVOKED: &str = "revoked";
 pub const ACT_INCREASED: &str = "increased";
 pub const ACT_DECREASED: &str = "decreased";
 

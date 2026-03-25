@@ -1,4 +1,4 @@
-﻿/// Central event emission helper for the Stellar Guilds contract.
+/// Central event emission helper for the Stellar Guilds contract.
 ///
 /// All modules **must** emit events exclusively through `emit_event()`.
 /// Direct calls to `env.events().publish()` are forbidden outside this file
@@ -27,8 +27,8 @@
 /// # Size budget
 /// Soroban charges per-byte for event data. Keep payload structs lean; use
 /// IDs to reference large blobs stored elsewhere rather than inlining them.
-
-use crate::events::types::{EventEnvelope, EVENT_SCHEMA_VERSION, EVENT_SEQUENCE_KEY};
+use crate::events::types::{EventEnvelope, EVENT_SCHEMA_VERSION};
+use crate::integration::events::record_standardized_event;
 use soroban_sdk::{Env, IntoVal, Symbol, Val};
 
 /// Read the current global event sequence number.
@@ -86,13 +86,18 @@ where
     // Publish envelope on the meta-topic so indexers can track all events
     // without needing to know every module+action pair in advance.
     env.events().publish(
-        (Symbol::new(env, "stellar_guilds"), Symbol::new(env, "event")),
+        (
+            Symbol::new(env, "stellar_guilds"),
+            Symbol::new(env, "event"),
+        ),
         envelope,
     );
 
     // Publish the actual payload on the specific (module, action) topic so
     // consumers interested only in e.g. bounty:created can filter precisely.
     env.events().publish((module_sym, action_sym), data);
+
+    record_standardized_event(env, module, action);
 }
 
 /// Convenience helper: emit an event and return a value in one expression.
