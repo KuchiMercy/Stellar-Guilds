@@ -6,7 +6,6 @@ import { BountyCard } from "@/features/bounties/components/BountyCard";
 import {
   Search,
   Zap,
-  XCircle,
   LayoutDashboard,
   Target,
   Activity,
@@ -18,10 +17,13 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type SortOption = "Newest" | "Highest Reward" | "Expiring Soon";
 
 export default function MarketplacePage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [sortBy, setSortBy] = useState<SortOption>("Newest");
@@ -46,13 +48,6 @@ export default function MarketplacePage() {
       return 0;
     });
   }, [search, filterStatus, sortBy]);
-
-  const clearFilters = () => {
-    setSearch("");
-    setFilterStatus("All");
-    setSortBy("Newest");
-    setActiveCategory("All");
-  };
 
   return (
     <div className="min-h-screen w-full bg-[#050505] text-white selection:bg-violet-500/30">
@@ -247,7 +242,13 @@ export default function MarketplacePage() {
                   </motion.div>
                 ))
               ) : (
-                <EmptyState onReset={clearFilters} />
+                <EmptyState
+                  title="No bounties found"
+                  description="There are no missions matching your filters right now."
+                  createLabel="Create Bounty"
+                  onCreate={() => router.push('/bounties/create')}
+                  className="col-span-full border-white/10 bg-white/[0.02]"
+                />
               )}
             </AnimatePresence>
           </div>
@@ -268,19 +269,4 @@ const CategoryBtn = ({ icon, label, active, onClick }: { icon: React.ReactNode; 
   >
     {icon} {label}
   </button>
-);
-
-const EmptyState = ({ onReset }: { onReset: () => void }) => (
-  <div className="col-span-full flex flex-col items-center justify-center py-32 border-2 border-dashed border-white/5 rounded-[40px]">
-    <XCircle size={40} className="text-slate-800 mb-4" />
-    <h3 className="text-xl font-black italic tracking-tighter text-slate-500 mb-6 uppercase">
-      Sector Dark
-    </h3>
-    <button
-      onClick={onReset}
-      className="px-8 py-3 bg-violet-500 text-black text-[10px] font-black uppercase tracking-widest rounded-full hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all"
-    >
-      Refresh Terminal
-    </button>
-  </div>
 );

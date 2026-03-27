@@ -4,8 +4,6 @@ import { MOCK_BOUNTIES } from "@/lib/mocks/bounties";
 import { BountyCard } from "@/features/bounties/components/BountyCard";
 import {
   LayoutDashboard,
-  CheckCircle2,
-  Hammer,
   PlusCircle,
   TrendingUp,
   Zap,
@@ -15,10 +13,13 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type TabType = "Active" | "Completed" | "Created";
 
 export default function MyBountiesDashboard() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("Active");
 
   const displayData = useMemo(() => {
@@ -127,7 +128,19 @@ export default function MyBountiesDashboard() {
                     <BountyCard key={bounty.id} bounty={bounty} />
                   ))
                 ) : (
-                  <EmptyState tab={activeTab} />
+                  <EmptyState
+                    title={`No ${activeTab.toLowerCase()} bounties`}
+                    description={
+                      activeTab === "Active"
+                        ? "You have no active missions right now."
+                        : activeTab === "Completed"
+                        ? "Completed missions will show up here."
+                        : "Created missions will appear here after publishing."
+                    }
+                    createLabel="Create Bounty"
+                    onCreate={() => router.push('/bounties/create')}
+                    className="col-span-full border-white/10 bg-white/[0.01]"
+                  />
                 )}
               </motion.div>
             </AnimatePresence>
@@ -225,17 +238,3 @@ const ActivityItem = ({ title, desc, time, status }: { title: string; desc: stri
     </div>
   );
 };
-
-const EmptyState = ({ tab }: { tab: string }) => (
-  <div className="col-span-full border-2 border-dashed border-white/5 rounded-[40px] py-32 flex flex-col items-center justify-center text-center bg-white/[0.01]">
-    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 text-slate-700">
-      {tab === "Completed" ? <CheckCircle2 size={32} /> : <Hammer size={32} />}
-    </div>
-    <h3 className="text-2xl font-black italic tracking-tighter text-slate-400 mb-2 uppercase">Sector Empty</h3>
-    <p className="text-slate-600 text-sm max-w-xs font-light">
-      {tab === "Active"
-        ? "No active missions detected. Scour the marketplace for new opportunities."
-        : "Historical records for this sector are currently empty."}
-    </p>
-  </div>
-);

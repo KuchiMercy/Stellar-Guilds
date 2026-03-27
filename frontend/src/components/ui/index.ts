@@ -4,6 +4,7 @@ export { Textarea } from './Textarea'
 export { Card } from './Card'
 export { Modal } from './Modal'
 export { Dropzone } from './Dropzone'
+export { EmptyState } from './EmptyState'
 export { 
   DropdownMenu,
   DropdownMenuTrigger,

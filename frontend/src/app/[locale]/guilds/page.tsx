@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Search, Plus, Filter } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useGuildStore } from '@/store/guildStore'
 import { GuildCard } from '@/features/guilds/components/GuildCard'
 import { Button } from '@/components/ui/Button'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 export default function GuildsPage() {
+  const router = useRouter()
   const { guilds, fetchGuilds } = useGuildStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('')
@@ -117,15 +120,14 @@ export default function GuildsPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <Filter className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              No guilds found
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Try adjusting your search or filters
-            </p>
-          </div>
+          <EmptyState
+            title="No guilds found"
+            description="Try adjusting your search or filters, or create a new guild."
+            createLabel="Create Guild"
+            onCreate={() => router.push('/guilds/create')}
+            illustration={<Filter className="h-14 w-14 text-gray-400" />}
+            className="border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+          />
         )}
       </div>
     </div>
