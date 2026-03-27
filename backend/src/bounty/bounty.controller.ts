@@ -134,7 +134,7 @@ export class BountyController {
   }
 
   /**
-   * Submit work for review
+   * Submit work for an active, assigned bounty
    * POST /bounties/:id/submit-work
    */
   @UseGuards(JwtAuthGuard)
@@ -144,7 +144,8 @@ export class BountyController {
     @Body() dto: SubmitWorkDto,
     @Request() req: any,
   ) {
-    return this.service.submitWork(id, dto.submissionUrl, req.user.userId);
+    const userId = req.user.userId;
+    return this.service.submitWork(id, dto.submissionUrl, userId);
   }
 
   /**
