@@ -10,6 +10,7 @@ import { CreateBountyDto } from './dto/create-bounty.dto';
 import { UpdateBountyDto } from './dto/update-bounty.dto';
 import { ApplyBountyDto } from './dto/apply-bounty.dto';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
+import { ReviewWorkDto } from './dto/review-work.dto';
 
 @Injectable()
 export class BountyService {
@@ -291,5 +292,173 @@ export class BountyService {
     } catch (_) {}
 
     return { payout, milestoneApproved: true };
+  }
+
+  /**
+   * Submit work for review
+   * State machine transition: IN_PROGRESS -> SUBMITTED_FOR_REVIEW
+   */
+  async submitWork(
+    bountyId: string,
+    submissionUrl: string,
+    userId: string,
+  ) {
+    const bounty = await this.prisma.bounty.findUnique({
+      where: { id: bountyId },
+      include: { creator: true },
+    });
+
+    if (!bounty) {
+      throw new NotFoundException('Bounty not found');
+    }
+
+    // Only assignee can submit work
+    if (bounty.assigneeId !== userId) {
+      throw new ForbiddenException('Only the assigned user can submit work');
+    }
+
+    // Validate current status allows submission
+    if (bounty.status !== 'IN_PROGRESS') {
+      throw new BadRequestException(
+        `Cannot submit work for bounty in ${bounty.status} status. Work can only be submitted when bounty is IN_PROGRESS.`,
+      );
+    }
+
+    const updatedBounty = await this.prisma.bounty.update({
+      where: { id: bountyId },
+      data: {
+        status: 'SUBMITTED_FOR_REVIEW',
+      },
+    });
+
+    // Notify bounty creator of submission
+    try {
+      if (bounty.creator?.email) {
+        await this.mailer.sendRevokeEmail(
+          bounty.creator.email,
+          `Work submitted for "${bounty.title}"`,
+          `The assigned user has submitted work for review. Submission: ${submissionUrl}`,
+        );
+      }
+    } catch (_) {
+      // Ignore email errors
+    }
+
+    return {
+      bounty: updatedBounty,
+      submissionUrl,
+      message: 'Work submitted successfully. Awaiting review.',
+    };
+  }
+
+  /**
+   * Review submitted bounty work
+   * State machine transitions:
+   * - SUBMITTED_FOR_REVIEW + approve -> COMPLETED_PENDING_CLAIM
+   * - SUBMITTED_FOR_REVIEW + reject -> IN_PROGRESS (with feedback)
+   */
+  async reviewWork(
+    bountyId: string,
+    dto: ReviewWorkDto,
+    reviewerId: string,
+  ) {
+    const bounty = await this.prisma.bounty.findUnique({
+      where: { id: bountyId },
+      include: { assignee: true },
+    });
+
+    if (!bounty) {
+      throw new NotFoundException('Bounty not found');
+    }
+
+    // Only creator or guild admin can review work
+    if (bounty.creatorId !== reviewerId) {
+      throw new ForbiddenException('Only the bounty creator can review work');
+    }
+
+    // Validate current status allows review
+    if (bounty.status !== 'SUBMITTED_FOR_REVIEW') {
+      throw new BadRequestException(
+        `Cannot review bounty in ${bounty.status} status. Work must be submitted for review first.`,
+      );
+    }
+
+    if (dto.approve) {
+      // Approve: transition to COMPLETED_PENDING_CLAIM
+      const updatedBounty = await this.prisma.bounty.update({
+        where: { id: bountyId },
+        data: {
+          status: 'COMPLETED_PENDING_CLAIM',
+        },
+      });
+
+      // Notify assignee of approval
+      try {
+        if (bounty.assignee?.email) {
+          await this.mailer.sendRevokeEmail(
+            bounty.assignee.email,
+            `Your work on "${bounty.title}" has been approved!`,
+            `You can now claim your reward of ${bounty.rewardAmount} ${bounty.rewardToken}.`,
+          );
+        }
+      } catch (_) {
+        // Ignore email errors
+      }
+
+      return {
+        bounty: updatedBounty,
+        action: 'APPROVED',
+        message: 'Work approved. Bounty is now ready for reward claim.',
+      };
+    } else {
+      // Reject: transition back to IN_PROGRESS with feedback
+      if (!dto.feedback || dto.feedback.trim().length === 0) {
+        throw new BadRequestException(
+          'Rejection feedback is required when rejecting work',
+        );
+      }
+
+      const updatedBounty = await this.prisma.bounty.update({
+        where: { id: bountyId },
+        data: {
+          status: 'IN_PROGRESS',
+        },
+      });
+
+      // Store rejection feedback as a notification or in a separate table
+      // For now, we'll create a notification for the assignee
+      try {
+        if (bounty.assigneeId) {
+          await this.prisma.notification.create({
+            data: {
+              userId: bounty.assigneeId,
+              message: `Your work on "${bounty.title}" was rejected. Feedback: ${dto.feedback}`,
+              type: 'BOUNTY_WORK_REJECTED',
+              metadata: {
+                bountyId,
+                feedback: dto.feedback,
+              },
+            },
+          });
+        }
+
+        if (bounty.assignee?.email) {
+          await this.mailer.sendRevokeEmail(
+            bounty.assignee.email,
+            `Your work on "${bounty.title}" needs revision`,
+            `Feedback: ${dto.feedback}`,
+          );
+        }
+      } catch (_) {
+        // Ignore notification/email errors
+      }
+
+      return {
+        bounty: updatedBounty,
+        action: 'REJECTED',
+        message: 'Work rejected. Bounty returned to IN_PROGRESS status.',
+        feedback: dto.feedback,
+      };
+    }
   }
 }

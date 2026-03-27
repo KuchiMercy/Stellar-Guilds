@@ -16,6 +16,8 @@ import { CreateBountyDto } from './dto/create-bounty.dto';
 import { UpdateBountyDto } from './dto/update-bounty.dto';
 import { ApplyBountyDto } from './dto/apply-bounty.dto';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
+import { ReviewWorkDto } from './dto/review-work.dto';
+import { SubmitWorkDto } from './dto/submit-work.dto';
 
 @Controller('bounties')
 export class BountyController {
@@ -129,5 +131,33 @@ export class BountyController {
     @Request() req: any,
   ) {
     return this.service.approveMilestone(id, mid, req.user.userId);
+  }
+
+  /**
+   * Submit work for review
+   * POST /bounties/:id/submit-work
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/submit-work')
+  async submitWork(
+    @Param('id') id: string,
+    @Body() dto: SubmitWorkDto,
+    @Request() req: any,
+  ) {
+    return this.service.submitWork(id, dto.submissionUrl, req.user.userId);
+  }
+
+  /**
+   * Admin endpoint to review submitted bounty work
+   * POST /bounties/:id/review-work
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/review-work')
+  async reviewWork(
+    @Param('id') id: string,
+    @Body() dto: ReviewWorkDto,
+    @Request() req: any,
+  ) {
+    return this.service.reviewWork(id, dto, req.user.userId);
   }
 }
