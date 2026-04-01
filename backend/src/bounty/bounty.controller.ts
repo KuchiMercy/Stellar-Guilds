@@ -141,8 +141,6 @@ export class BountyController {
     @Body() dto: SubmitBountyWorkDto,
     @Request() req: any,
   ) {
-    const userId = req.user.userId;
-    return this.service.submitWork(id, dto.submissionUrl, userId);
     return this.service.submitWork(id, dto, req.user.userId);
   }
 

@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailerService } from '../mailer/mailer.service';
 import { validateAndNormalizeSettings } from './guild.settings';
 import { ConflictException } from '@nestjs/common';
+import { StorageService } from '../storage/storage.service';
 
 const mockPrisma = () => ({
   guild: {
@@ -36,6 +37,10 @@ describe('GuildService (settings integration)', () => {
         GuildService,
         { provide: PrismaService, useFactory: mockPrisma },
         { provide: MailerService, useFactory: mockMailer },
+        {
+          provide: StorageService,
+          useValue: { uploadFile: jest.fn(), deleteFile: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -73,7 +78,7 @@ describe('GuildService (settings integration)', () => {
       id: guildId,
       settings: { visibility: 'public', requireApproval: false },
     });
-    prisma.guild.update.mockImplementation(({ where, data }) =>
+    prisma.guild.update.mockImplementation(({ where, data }: any) =>
       Promise.resolve({ id: where.id, ...data }),
     );
 

@@ -3,6 +3,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { BountyService } from './bounty.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailerService } from '../mailer/mailer.service';
+import { StorageService } from '../storage/storage.service';
 
 const mockPrisma = () => {
   const prisma = {
@@ -197,7 +198,11 @@ describe('BountyService', () => {
 
       const result = await service.submitWork(
         'bounty-1',
-        'https://example.com/submission',
+        {
+          submissions: [
+            { prUrl: 'https://example.com/submission', description: 'Initial work' },
+          ],
+        },
         'worker-1',
       );
 
@@ -229,7 +234,7 @@ describe('BountyService', () => {
       await expect(
         service.submitWork(
           'bounty-1',
-          'https://example.com/submission',
+          { submissions: [{ prUrl: 'https://example.com/submission', description: 'desc' }] },
           'intruder-1',
         ),
       ).rejects.toThrow(ForbiddenException);

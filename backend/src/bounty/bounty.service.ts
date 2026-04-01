@@ -388,38 +388,7 @@ export class BountyService {
       return tx.bounty.findUnique({
         where: { id: bountyId },
       });
-    // Build submission data from DTO
-    const submissionData = {
-      submissions: dto.submissions.map((sub) => ({
-        prUrl: sub.prUrl,
-        description: sub.description,
-      })),
-      attachmentUrls: dto.attachmentUrls || [],
-      additionalComments: dto.additionalComments || null,
-      submittedAt: new Date(),
-    };
-
-    const updatedBounty = await this.prisma.bounty.update({
-      where: { id: bountyId },
-      data: {
-        status: 'SUBMITTED_FOR_REVIEW',
-      },
     });
-
-    // Store submission details in metadata or a separate table
-    // For now, we'll create a notification with the submission data
-    try {
-      await this.prisma.notification.create({
-        data: {
-          userId: bounty.creatorId,
-          message: `Work submitted for "${bounty.title}"`,
-          type: 'BOUNTY_WORK_SUBMITTED',
-          metadata: submissionData,
-        },
-      });
-    } catch (_) {
-      // Ignore notification errors
-    }
 
     // Notify bounty creator of submission
     try {
@@ -436,7 +405,6 @@ export class BountyService {
 
     return {
       bounty: updatedBounty,
-      submission: submissionData,
       message: 'Work submitted successfully. Awaiting review.',
     };
   }
