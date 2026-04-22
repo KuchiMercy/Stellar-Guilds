@@ -76,6 +76,11 @@ model User {
   discordHandle String?
   twitterHandle String?
   githubHandle  String?
+  backgroundCid String?
+
+  // Profile completion tracking
+  hasCompletionBonus Boolean @default(false)
+  xp                 Int     @default(0)
 
   // Relations
   ownedGuilds        Guild[]             @relation("UserOwnerGuilds")
