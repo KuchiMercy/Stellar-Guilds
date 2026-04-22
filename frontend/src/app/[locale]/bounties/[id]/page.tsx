@@ -2,6 +2,7 @@
 import React, { useState, use } from "react";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
+import { CodeBlock } from "@/components/markdown/CodeBlock";
 import { MOCK_BOUNTIES } from "@/lib/mocks/bounties";
 import { StatusBadge } from "@/features/bounties/components/BountyCard";
 import { SubmissionForm } from "@/features/bounties/components/SubmissionForm";
@@ -141,7 +142,15 @@ export default function BountyDetailPage({ params }: PageProps) {
                 <div className="h-[1px] flex-grow bg-white/5" />
               </h2>
               <div className="prose prose-invert max-w-none prose-violet">
-                <ReactMarkdown>{bounty.description}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    pre: ({ children, className }) => (
+                      <CodeBlock className={className}>{children}</CodeBlock>
+                    ),
+                  }}
+                >
+                  {bounty.description}
+                </ReactMarkdown>
               </div>
             </section>
           </div>

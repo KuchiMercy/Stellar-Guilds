@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import ReactMarkdown from "react-markdown";
+import { CodeBlock } from "@/components/markdown/CodeBlock";
 import {
   Edit3,
   Eye,
@@ -180,7 +181,13 @@ export default function CreateBountyPage() {
                     {formData.title || "Untitled Mission"}
                   </h2>
                   <div className="prose prose-invert max-w-none prose-violet">
-                    <ReactMarkdown>
+                    <ReactMarkdown
+                      components={{
+                        pre: ({ children, className }) => (
+                          <CodeBlock className={className}>{children}</CodeBlock>
+                        ),
+                      }}
+                    >
                       {formData.description || "_Intel pending..._"}
                     </ReactMarkdown>
                   </div>
