@@ -78,6 +78,10 @@ model User {
   githubHandle  String?
   backgroundCid String?
 
+  // Profile completion tracking
+  hasCompletionBonus Boolean @default(false)
+  xp                 Int     @default(0)
+
   // Relations
   ownedGuilds        Guild[]             @relation("UserOwnerGuilds")
   joinedGuilds       GuildMembership[]   @relation("UserJoinedGuilds")

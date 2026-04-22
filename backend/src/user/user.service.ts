@@ -16,6 +16,7 @@ import {
   UserRole,
 } from './dto/user.dto';
 import * as bcrypt from 'bcrypt';
+import { ProfileUtil } from '../common/utils/profile.util';
 
 @Injectable()
 export class UserService {
@@ -154,10 +155,69 @@ export class UserService {
         createdAt: true,
         updatedAt: true,
         role: true,
+        hasCompletionBonus: true,
+        xp: true,
       },
     });
 
+    // Check profile completeness and award XP bonus if applicable
+    await this.checkAndAwardCompletionBonus(userId, updated);
+
     return updated;
+  }
+
+  /**
+   * Check if user has completed their profile and award XP bonus
+   */
+  private async checkAndAwardCompletionBonus(userId: string, user: any) {
+    // Skip if user already received the bonus
+    if (user.hasCompletionBonus) {
+      return;
+    }
+
+    // Calculate profile completeness
+    const completeness = ProfileUtil.calculateCompleteness({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      bio: user.bio,
+      location: user.location,
+      profileBio: user.profileBio,
+      profileUrl: user.profileUrl,
+      discordHandle: user.discordHandle,
+      twitterHandle: user.twitterHandle,
+      githubHandle: user.githubHandle,
+      avatarUrl: user.avatarUrl,
+      backgroundCid: user.backgroundCid,
+    });
+
+    // Award 50 XP if profile is 100% complete
+    if (completeness === 100) {
+      this.logger.log(`User ${userId} achieved 100% profile completeness. Awarding 50 XP bonus.`);
+
+      await this.prisma.$transaction(async (tx: any) => {
+        // Update user XP and mark bonus as received
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            xp: { increment: 50 },
+            hasCompletionBonus: true,
+          },
+        });
+
+        // Log the reward in reputation history (notifications table)
+        await tx.notification.create({
+          data: {
+            userId,
+            message: '🎉 Congratulations! You earned 50 XP for completing your profile!',
+            type: 'PROFILE_COMPLETION_BONUS',
+            metadata: {
+              xpAwarded: 50,
+              completeness,
+            },
+          },
+        });
+      });
+    }
   }
 
   /**
