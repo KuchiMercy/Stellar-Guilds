@@ -20,7 +20,13 @@ fn set_timestamp(env: &Env, timestamp: u64) {
     });
 }
 
-fn store_emergency_op(env: &Env, id: u64, proposer: &Address, status: OperationStatus, op_type: OperationType) {
+fn store_emergency_op(
+    env: &Env,
+    id: u64,
+    proposer: &Address,
+    status: OperationStatus,
+    op_type: OperationType,
+) {
     let op = MultiSigOperation {
         id,
         account_id: 1,
@@ -49,7 +55,13 @@ fn test_pause_resume_and_log_flow() {
     let (env, contract_id, proposer) = setup_emergency();
     set_timestamp(&env, 100);
     env.as_contract(&contract_id, || {
-        store_emergency_op(&env, 1, &proposer, OperationStatus::Executed, OperationType::EmergencyAction);
+        store_emergency_op(
+            &env,
+            1,
+            &proposer,
+            OperationStatus::Executed,
+            OperationType::EmergencyAction,
+        );
 
         let default_cfg = storage::get_emergency_config(&env);
         assert_eq!(default_cfg.status, EmergencyStatus::Inactive);
@@ -73,7 +85,11 @@ fn test_pause_resume_and_log_flow() {
             .persistent()
             .has(&storage::DataKey::EmergencyLog(1)));
 
-        assert!(actions::resume_contract(&env, 1, String::from_str(&env, "done")));
+        assert!(actions::resume_contract(
+            &env,
+            1,
+            String::from_str(&env, "done")
+        ));
         let resumed_cfg = storage::get_emergency_config(&env);
         assert_eq!(resumed_cfg.status, EmergencyStatus::Inactive);
         assert_eq!(resumed_cfg.expires_at, 0);
@@ -89,7 +105,13 @@ fn test_is_paused_auto_expires() {
     let (env, contract_id, proposer) = setup_emergency();
     set_timestamp(&env, 10);
     env.as_contract(&contract_id, || {
-        store_emergency_op(&env, 1, &proposer, OperationStatus::Executed, OperationType::EmergencyAction);
+        store_emergency_op(
+            &env,
+            1,
+            &proposer,
+            OperationStatus::Executed,
+            OperationType::EmergencyAction,
+        );
 
         assert!(actions::pause_contract(
             &env,
@@ -103,7 +125,10 @@ fn test_is_paused_auto_expires() {
     set_timestamp(&env, 10 + (7 * 24 * 60 * 60) + 1);
     env.as_contract(&contract_id, || {
         assert!(!storage::is_paused(&env));
-        assert_eq!(storage::get_emergency_config(&env).status, EmergencyStatus::Inactive);
+        assert_eq!(
+            storage::get_emergency_config(&env).status,
+            EmergencyStatus::Inactive
+        );
     });
 }
 
@@ -112,7 +137,13 @@ fn test_is_paused_auto_expires() {
 fn test_pause_requires_executed_multisig_op() {
     let (env, contract_id, proposer) = setup_emergency();
     env.as_contract(&contract_id, || {
-        store_emergency_op(&env, 1, &proposer, OperationStatus::Pending, OperationType::EmergencyAction);
+        store_emergency_op(
+            &env,
+            1,
+            &proposer,
+            OperationStatus::Pending,
+            OperationType::EmergencyAction,
+        );
 
         actions::pause_contract(
             &env,
@@ -146,7 +177,13 @@ fn test_resume_requires_emergency_action_type() {
 fn test_pause_enforces_duration_bounds() {
     let (env, contract_id, proposer) = setup_emergency();
     env.as_contract(&contract_id, || {
-        store_emergency_op(&env, 1, &proposer, OperationStatus::Executed, OperationType::EmergencyAction);
+        store_emergency_op(
+            &env,
+            1,
+            &proposer,
+            OperationStatus::Executed,
+            OperationType::EmergencyAction,
+        );
 
         actions::pause_contract(
             &env,

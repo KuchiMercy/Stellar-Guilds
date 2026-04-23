@@ -6,7 +6,7 @@
 //! NOTE: These tests use the contract client to test through the main lib.rs
 //! contract interface, ensuring proper contract context execution.
 
-use crate::bounty::types::BountyStatus;
+use crate::bounty::types::{BountyStatus, PayoutSplit};
 use crate::guild::types::Role;
 use crate::StellarGuildsContract;
 use crate::StellarGuildsContractClient;
@@ -60,6 +60,19 @@ fn setup_guild(client: &StellarGuildsContractClient<'_>, env: &Env, owner: &Addr
     let name = String::from_str(env, "Test Guild");
     let description = String::from_str(env, "A test guild for bounties");
     client.create_guild(&name, &description, owner)
+}
+
+fn payout_split(recipient: &Address, bps: u32) -> PayoutSplit {
+    PayoutSplit {
+        recipient: recipient.clone(),
+        bps,
+    }
+}
+
+fn single_recipient_split(env: &Env, recipient: &Address) -> soroban_sdk::Vec<PayoutSplit> {
+    let mut recipients = soroban_sdk::Vec::new(env);
+    recipients.push_back(payout_split(recipient, 10_000));
+    recipients
 }
 
 // ============ Bounty Creation Tests ============
@@ -1607,7 +1620,8 @@ fn test_claim_payout_success() {
     client.approve_completion(&bounty_id, &owner);
 
     // Claim payout directly - no need for separate release_escrow call
-    let result = client.claim_payout(&bounty_id, &claimer);
+    let recipients = single_recipient_split(&env, &claimer);
+    let result = client.claim_payout(&bounty_id, &claimer, &recipients);
     assert_eq!(result, true);
 
     // Claimer should have received the funds
@@ -1655,7 +1669,8 @@ fn test_claim_payout_not_completed_fails() {
     client.claim_bounty(&bounty_id, &claimer);
 
     // Try to claim payout without completion
-    client.claim_payout(&bounty_id, &claimer);
+    let recipients = single_recipient_split(&env, &claimer);
+    client.claim_payout(&bounty_id, &claimer, &recipients);
 }
 
 #[test]
@@ -1699,7 +1714,8 @@ fn test_claim_payout_wrong_claimer_fails() {
     client.approve_completion(&bounty_id, &owner);
 
     // Different claimer tries to claim payout
-    client.claim_payout(&bounty_id, &other_address);
+    let recipients = single_recipient_split(&env, &other_address);
+    client.claim_payout(&bounty_id, &other_address, &recipients);
 }
 
 #[test]
@@ -1741,7 +1757,8 @@ fn test_claim_payout_double_claim_is_noop() {
     client.approve_completion(&bounty_id, &owner);
 
     // First claim succeeds
-    let result = client.claim_payout(&bounty_id, &claimer);
+    let recipients = single_recipient_split(&env, &claimer);
+    let result = client.claim_payout(&bounty_id, &claimer, &recipients);
     assert_eq!(result, true);
 
     // Verify funds transferred
@@ -1750,7 +1767,7 @@ fn test_claim_payout_double_claim_is_noop() {
 
     // Second claim also returns true (is a no-op due to checks-effects-interactions pattern)
     // The funded_amount is already 0, so nothing transfers
-    let result2 = client.claim_payout(&bounty_id, &claimer);
+    let result2 = client.claim_payout(&bounty_id, &claimer, &recipients);
     assert_eq!(result2, true);
 
     // Balance should remain the same
@@ -1811,11 +1828,158 @@ fn test_claim_payout_no_funds_to_claim() {
     client.approve_completion(&bounty_id2, &owner);
 
     // Claim payout with only 100 funds available
-    let result = client.claim_payout(&bounty_id2, &claimer);
+    let recipients = single_recipient_split(&env, &claimer);
+    let result = client.claim_payout(&bounty_id2, &claimer, &recipients);
     assert_eq!(result, true);
 
     let balance = get_token_balance(&env, &token, &claimer);
     assert_eq!(balance, 100);
+}
+
+#[test]
+fn test_claim_payout_split_evenly_between_two_recipients() {
+    let env = setup_env();
+    let owner = Address::generate(&env);
+    let funder = Address::generate(&env);
+    let claimer = Address::generate(&env);
+    let collaborator = Address::generate(&env);
+    let token = create_mock_token(&env, &owner);
+
+    set_ledger_timestamp(&env, 1000);
+    env.mock_all_auths();
+
+    let contract_id = register_and_init_contract(&env);
+    let client = StellarGuildsContractClient::new(&env, &contract_id);
+
+    let guild_id = setup_guild(&client, &env, &owner);
+
+    mint_tokens(&env, &token, &funder, 1000);
+
+    let title = String::from_str(&env, "Task");
+    let description = String::from_str(&env, "Description");
+    let bounty_id = client.create_bounty(
+        &guild_id,
+        &owner,
+        &title,
+        &description,
+        &100i128,
+        &token,
+        &2000u64,
+    );
+
+    client.fund_bounty(&bounty_id, &funder, &100i128);
+    client.approve_bounty(&bounty_id, &owner, &claimer);
+    client.claim_bounty(&bounty_id, &claimer);
+
+    let submission = String::from_str(&env, "https://github.com/pr/123");
+    client.submit_work(&bounty_id, &submission);
+    client.approve_completion(&bounty_id, &owner);
+
+    let mut recipients = soroban_sdk::Vec::new(&env);
+    recipients.push_back(payout_split(&claimer, 5_000));
+    recipients.push_back(payout_split(&collaborator, 5_000));
+
+    assert!(client.claim_payout(&bounty_id, &claimer, &recipients));
+    assert_eq!(get_token_balance(&env, &token, &claimer), 50);
+    assert_eq!(get_token_balance(&env, &token, &collaborator), 50);
+}
+
+#[test]
+fn test_claim_payout_split_assigns_dust_to_first_recipient() {
+    let env = setup_env();
+    let owner = Address::generate(&env);
+    let funder = Address::generate(&env);
+    let claimer = Address::generate(&env);
+    let contributor_two = Address::generate(&env);
+    let contributor_three = Address::generate(&env);
+    let token = create_mock_token(&env, &owner);
+
+    set_ledger_timestamp(&env, 1000);
+    env.mock_all_auths();
+
+    let contract_id = register_and_init_contract(&env);
+    let client = StellarGuildsContractClient::new(&env, &contract_id);
+
+    let guild_id = setup_guild(&client, &env, &owner);
+
+    mint_tokens(&env, &token, &funder, 1000);
+
+    let title = String::from_str(&env, "Task");
+    let description = String::from_str(&env, "Description");
+    let bounty_id = client.create_bounty(
+        &guild_id,
+        &owner,
+        &title,
+        &description,
+        &101i128,
+        &token,
+        &2000u64,
+    );
+
+    client.fund_bounty(&bounty_id, &funder, &101i128);
+    client.approve_bounty(&bounty_id, &owner, &claimer);
+    client.claim_bounty(&bounty_id, &claimer);
+
+    let submission = String::from_str(&env, "https://github.com/pr/123");
+    client.submit_work(&bounty_id, &submission);
+    client.approve_completion(&bounty_id, &owner);
+
+    let mut recipients = soroban_sdk::Vec::new(&env);
+    recipients.push_back(payout_split(&claimer, 3_300));
+    recipients.push_back(payout_split(&contributor_two, 3_300));
+    recipients.push_back(payout_split(&contributor_three, 3_400));
+
+    assert!(client.claim_payout(&bounty_id, &claimer, &recipients));
+    assert_eq!(get_token_balance(&env, &token, &claimer), 34);
+    assert_eq!(get_token_balance(&env, &token, &contributor_two), 33);
+    assert_eq!(get_token_balance(&env, &token, &contributor_three), 34);
+}
+
+#[test]
+#[should_panic(expected = "Invalid payout split: total BPS must equal 10000")]
+fn test_claim_payout_split_invalid_total_bps_fails() {
+    let env = setup_env();
+    let owner = Address::generate(&env);
+    let funder = Address::generate(&env);
+    let claimer = Address::generate(&env);
+    let collaborator = Address::generate(&env);
+    let token = create_mock_token(&env, &owner);
+
+    set_ledger_timestamp(&env, 1000);
+    env.mock_all_auths();
+
+    let contract_id = register_and_init_contract(&env);
+    let client = StellarGuildsContractClient::new(&env, &contract_id);
+
+    let guild_id = setup_guild(&client, &env, &owner);
+
+    mint_tokens(&env, &token, &funder, 1000);
+
+    let title = String::from_str(&env, "Task");
+    let description = String::from_str(&env, "Description");
+    let bounty_id = client.create_bounty(
+        &guild_id,
+        &owner,
+        &title,
+        &description,
+        &100i128,
+        &token,
+        &2000u64,
+    );
+
+    client.fund_bounty(&bounty_id, &funder, &100i128);
+    client.approve_bounty(&bounty_id, &owner, &claimer);
+    client.claim_bounty(&bounty_id, &claimer);
+
+    let submission = String::from_str(&env, "https://github.com/pr/123");
+    client.submit_work(&bounty_id, &submission);
+    client.approve_completion(&bounty_id, &owner);
+
+    let mut recipients = soroban_sdk::Vec::new(&env);
+    recipients.push_back(payout_split(&claimer, 4_000));
+    recipients.push_back(payout_split(&collaborator, 4_000));
+
+    client.claim_payout(&bounty_id, &claimer, &recipients);
 }
 
 // ============ Serialization Tests ============

@@ -1,4 +1,4 @@
-﻿use crate::subscription::storage;
+use crate::subscription::storage;
 use crate::subscription::types::{
     BillingCycle, MembershipTier, RetryConfig, RevenueRecord, Subscription, SubscriptionPlan,
     SubscriptionStatus,
@@ -728,7 +728,10 @@ fn test_subscription_storage_indexes_and_revenue_queries() {
                 .plan_id,
             plan_id_1
         );
-        assert_eq!(storage::get_subscriptions_by_plan(&env, plan_id_1, 10).len(), 1);
+        assert_eq!(
+            storage::get_subscriptions_by_plan(&env, plan_id_1, 10).len(),
+            1
+        );
 
         let record = RevenueRecord {
             id: revenue_id,
@@ -745,7 +748,12 @@ fn test_subscription_storage_indexes_and_revenue_queries() {
         };
         storage::store_revenue_record(&env, &record);
         storage::add_guild_revenue(&env, 77, 0, revenue_id);
-        assert_eq!(storage::get_revenue_record(&env, revenue_id).unwrap().amount, 100);
+        assert_eq!(
+            storage::get_revenue_record(&env, revenue_id)
+                .unwrap()
+                .amount,
+            100
+        );
         assert_eq!(storage::get_guild_revenue_records(&env, 77, 0).len(), 1);
 
         let retry = RetryConfig {

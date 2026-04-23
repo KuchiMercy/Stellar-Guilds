@@ -1,4 +1,4 @@
-﻿//! Payment Distribution Contract Tests
+//! Payment Distribution Contract Tests
 //!
 //! Comprehensive test coverage for payment pool creation, recipient management,
 //! validation, distribution execution, and batch operations.
@@ -297,7 +297,12 @@ fn test_payment_storage_round_trip_helpers() {
         };
         storage::store_payment_pool(&env, &pool);
         assert!(storage::pool_exists(&env, pool_id_1));
-        assert_eq!(storage::get_payment_pool(&env, pool_id_1).unwrap().total_amount, 500);
+        assert_eq!(
+            storage::get_payment_pool(&env, pool_id_1)
+                .unwrap()
+                .total_amount,
+            500
+        );
 
         storage::update_pool_status(&env, pool_id_1, DistributionStatus::Cancelled);
         assert_eq!(
@@ -310,7 +315,9 @@ fn test_payment_storage_round_trip_helpers() {
             share: 1,
         };
         storage::add_recipient_to_pool(&env, pool_id_1, &recipient_entry);
-        assert!(storage::recipient_exists_in_pool(&env, pool_id_1, &recipient));
+        assert!(storage::recipient_exists_in_pool(
+            &env, pool_id_1, &recipient
+        ));
         assert_eq!(storage::get_pool_recipients(&env, pool_id_1).len(), 1);
 
         storage::clear_pool_recipients(&env, pool_id_1);

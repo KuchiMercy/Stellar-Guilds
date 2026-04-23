@@ -56,6 +56,13 @@ pub struct EscrowLockedState {
     pub is_locked: bool,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PayoutSplit {
+    pub recipient: Address,
+    pub bps: u32,
+}
+
 // ============ Events ============
 
 /// Event emitted when a bounty is created

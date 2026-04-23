@@ -1,4 +1,4 @@
-﻿#[cfg(test)]
+#[cfg(test)]
 mod tests {
     use crate::governance::{ProposalType, VoteDecision};
     use crate::multisig::types::{OperationStatus, OperationType, TIMEOUT_24H, TIMEOUT_48H};
@@ -280,9 +280,15 @@ mod tests {
         assert_eq!(client.ms_get_account(&account_id).threshold, 3);
 
         assert!(client.ms_freeze_account(&account_id, &owner));
-        assert_eq!(client.ms_get_account(&account_id).status, crate::multisig::types::AccountStatus::Frozen);
+        assert_eq!(
+            client.ms_get_account(&account_id).status,
+            crate::multisig::types::AccountStatus::Frozen
+        );
         assert!(client.ms_unfreeze_account(&account_id, &owner));
-        assert_eq!(client.ms_get_account(&account_id).status, crate::multisig::types::AccountStatus::Active);
+        assert_eq!(
+            client.ms_get_account(&account_id).status,
+            crate::multisig::types::AccountStatus::Active
+        );
 
         assert!(client.ms_rotate_signer(&account_id, &signer3, &replacement, &owner));
         let account = client.ms_get_account(&account_id);
@@ -310,7 +316,10 @@ mod tests {
         );
         assert_eq!(client.ms_get_pending_ops(&account_id).len(), 1);
         assert!(client.ms_cancel_operation(&op_a, &owner));
-        assert_eq!(client.ms_get_operation(&op_a).status, OperationStatus::Cancelled);
+        assert_eq!(
+            client.ms_get_operation(&op_a).status,
+            OperationStatus::Cancelled
+        );
         assert_eq!(client.ms_get_pending_ops(&account_id).len(), 0);
 
         let op_b = client.ms_propose_operation(
@@ -321,7 +330,10 @@ mod tests {
         );
         set_timestamp(&env, env.ledger().timestamp() + TIMEOUT_48H + 5);
         assert!(client.ms_check_and_expire(&op_b));
-        assert_eq!(client.ms_get_operation(&op_b).status, OperationStatus::Expired);
+        assert_eq!(
+            client.ms_get_operation(&op_b).status,
+            OperationStatus::Expired
+        );
 
         let op_c = client.ms_propose_operation(
             &account_id,
@@ -337,11 +349,17 @@ mod tests {
         );
         assert!(client.ms_emergency_extend_timeout(&op_c, &TIMEOUT_24H, &owner));
         assert!(client.ms_emergency_expire(&op_d, &owner));
-        assert_eq!(client.ms_get_operation(&op_d).status, OperationStatus::Expired);
+        assert_eq!(
+            client.ms_get_operation(&op_d).status,
+            OperationStatus::Expired
+        );
 
         set_timestamp(&env, env.ledger().timestamp() + TIMEOUT_24H + 5);
         assert_eq!(client.ms_sweep_expired(&account_id), 1);
-        assert_eq!(client.ms_get_operation(&op_c).status, OperationStatus::Expired);
+        assert_eq!(
+            client.ms_get_operation(&op_c).status,
+            OperationStatus::Expired
+        );
     }
 
     #[test]

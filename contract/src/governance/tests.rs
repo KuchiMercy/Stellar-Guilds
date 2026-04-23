@@ -1,10 +1,10 @@
-﻿#[cfg(test)]
+#[cfg(test)]
 mod tests {
-    use crate::governance::{proposals, storage};
     use crate::governance::types::{
         ExecutionPayload, GovernanceConfig, Proposal, ProposalStatus, ProposalType, Vote,
         VoteDecision,
     };
+    use crate::governance::{proposals, storage};
     use crate::guild::types::Role;
     use crate::StellarGuildsContract;
     use crate::StellarGuildsContractClient;
@@ -249,7 +249,10 @@ mod tests {
 
             storage::store_proposal(&env, &proposal);
             storage::store_proposal(&env, &proposal);
-            assert_eq!(storage::get_proposal(&env, proposal_id).unwrap().title, proposal.title);
+            assert_eq!(
+                storage::get_proposal(&env, proposal_id).unwrap().title,
+                proposal.title
+            );
             assert_eq!(storage::get_guild_proposals(&env, guild_id).len(), 1);
 
             let vote = Vote {
@@ -261,17 +264,25 @@ mod tests {
             };
             storage::store_vote(&env, &vote);
             assert_eq!(
-                storage::get_vote(&env, proposal_id, &voter).unwrap().decision,
+                storage::get_vote(&env, proposal_id, &voter)
+                    .unwrap()
+                    .decision,
                 VoteDecision::For
             );
             assert_eq!(storage::get_all_votes(&env, proposal_id).len(), 1);
 
             storage::set_delegation(&env, guild_id, &voter, &delegate);
-            assert_eq!(storage::get_delegate(&env, guild_id, &voter), Some(delegate.clone()));
+            assert_eq!(
+                storage::get_delegate(&env, guild_id, &voter),
+                Some(delegate.clone())
+            );
             storage::remove_delegation(&env, guild_id, &voter);
             assert_eq!(storage::get_delegate(&env, guild_id, &voter), None);
 
-            assert_eq!(storage::get_config(&env, guild_id), GovernanceConfig::default());
+            assert_eq!(
+                storage::get_config(&env, guild_id),
+                GovernanceConfig::default()
+            );
             let updated = GovernanceConfig {
                 quorum_percentage: 45,
                 approval_threshold: 70,
@@ -291,7 +302,8 @@ mod tests {
 
         let contract_id = register_and_init_contract(&env);
         let client = StellarGuildsContractClient::new(&env, &contract_id);
-        let (guild_id, admin, _member, _contributor) = setup_guild_with_members(&env, &client, &owner);
+        let (guild_id, admin, _member, _contributor) =
+            setup_guild_with_members(&env, &client, &owner);
 
         let proposal_a = client.create_proposal(
             &guild_id,
@@ -310,9 +322,15 @@ mod tests {
 
         assert_eq!(client.get_active_proposals(&guild_id).len(), 2);
         assert!(client.cancel_proposal(&proposal_b, &owner));
-        assert_eq!(client.get_proposal(&proposal_b).status, ProposalStatus::Cancelled);
+        assert_eq!(
+            client.get_proposal(&proposal_b).status,
+            ProposalStatus::Cancelled
+        );
         assert_eq!(client.get_active_proposals(&guild_id).len(), 1);
-        assert_eq!(client.get_active_proposals(&guild_id).get(0).unwrap().id, proposal_a);
+        assert_eq!(
+            client.get_active_proposals(&guild_id).get(0).unwrap().id,
+            proposal_a
+        );
 
         let new_cfg = GovernanceConfig {
             quorum_percentage: 40,

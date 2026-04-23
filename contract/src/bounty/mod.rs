@@ -39,7 +39,9 @@ use crate::guild::membership::has_permission;
 use crate::guild::types::Role;
 use soroban_sdk::{Address, Env, String, Vec};
 
-pub use types::{Bounty, BountyStatus};
+pub use types::{Bounty, BountyStatus, PayoutSplit};
+
+const TOTAL_BPS: i128 = 10_000;
 
 /// Create a new bounty
 ///
@@ -115,6 +117,78 @@ pub fn create_bounty(
     );
 
     bounty_id
+}
+
+fn validate_payout_splits(recipients: &Vec<PayoutSplit>) {
+    if recipients.len() == 0 {
+        panic!("Payout recipients cannot be empty");
+    }
+
+    let mut total_bps = 0i128;
+    for index in 0..recipients.len() {
+        let recipient = recipients.get_unchecked(index);
+        if recipient.bps == 0 || i128::from(recipient.bps) > TOTAL_BPS {
+            panic!("Invalid payout split entry");
+        }
+        total_bps += i128::from(recipient.bps);
+    }
+
+    if total_bps != TOTAL_BPS {
+        panic!("Invalid payout split: total BPS must equal 10000");
+    }
+}
+
+fn distribute_payout(
+    env: &Env,
+    bounty_id: u64,
+    token: &Address,
+    payout_amount: i128,
+    recipients: &Vec<PayoutSplit>,
+) {
+    validate_payout_splits(recipients);
+
+    let first_recipient = recipients.get_unchecked(0);
+    let mut distributed_to_other_recipients = 0i128;
+
+    for index in 1..recipients.len() {
+        let split = recipients.get_unchecked(index);
+        distributed_to_other_recipients += payout_amount * i128::from(split.bps) / TOTAL_BPS;
+    }
+
+    let first_amount = payout_amount - distributed_to_other_recipients;
+    if first_amount > 0 {
+        release_funds(env, token, &first_recipient.recipient, first_amount);
+        emit_event(
+            env,
+            MOD_BOUNTY,
+            ACT_RELEASED,
+            EscrowReleasedEvent {
+                bounty_id,
+                recipient: first_recipient.recipient,
+                amount: first_amount,
+                token: token.clone(),
+            },
+        );
+    }
+
+    for index in 1..recipients.len() {
+        let split = recipients.get_unchecked(index);
+        let amount = payout_amount * i128::from(split.bps) / TOTAL_BPS;
+        if amount > 0 {
+            release_funds(env, token, &split.recipient, amount);
+            emit_event(
+                env,
+                MOD_BOUNTY,
+                ACT_RELEASED,
+                EscrowReleasedEvent {
+                    bounty_id,
+                    recipient: split.recipient,
+                    amount,
+                    token: token.clone(),
+                },
+            );
+        }
+    }
 }
 
 /// Fund a bounty with tokens
@@ -461,7 +535,12 @@ pub fn expire_bounty(env: &Env, bounty_id: u64) -> bool {
 ///
 /// # Events emitted
 /// - `(bounty, released)` → `EscrowReleasedEvent`
-pub fn claim_payout(env: &Env, bounty_id: u64, claimer: Address) -> bool {
+pub fn claim_payout(
+    env: &Env,
+    bounty_id: u64,
+    claimer: Address,
+    recipients: Vec<PayoutSplit>,
+) -> bool {
     claimer.require_auth();
 
     if dispute_storage::is_reference_locked(env, &DisputeReference::Bounty, bounty_id) {
@@ -479,6 +558,8 @@ pub fn claim_payout(env: &Env, bounty_id: u64, claimer: Address) -> bool {
         panic!("Unauthorized: Only the approved claimer can claim payout");
     }
 
+    validate_payout_splits(&recipients);
+
     // EFFECTS: Update state FIRST to prevent reentrancy
     let payout_amount = bounty.funded_amount;
     bounty.funded_amount = 0;
@@ -486,19 +567,7 @@ pub fn claim_payout(env: &Env, bounty_id: u64, claimer: Address) -> bool {
 
     // INTERACTIONS: Only transfer after state is updated
     if payout_amount > 0 {
-        release_funds(env, &bounty.token, &claimer, payout_amount);
-
-        emit_event(
-            env,
-            MOD_BOUNTY,
-            ACT_RELEASED,
-            EscrowReleasedEvent {
-                bounty_id,
-                recipient: claimer,
-                amount: payout_amount,
-                token: bounty.token,
-            },
-        );
+        distribute_payout(env, bounty_id, &bounty.token, payout_amount, &recipients);
     }
 
     true
@@ -521,4 +590,3 @@ pub fn cancel_bounty_auth(env: &Env, bounty_id: u64, canceller: Address) -> bool
 
 #[cfg(test)]
 mod tests;
-

@@ -9,7 +9,8 @@ mod interfaces;
 mod utils;
 use guild::membership::{
     add_member, create_guild, get_all_members, get_member, has_permission, is_member, join_guild,
-    remove_member, update_role,
+    remove_member, reque_permissions as guild_reque_permissions,
+    update_guild_info as guild_update_guild_info, update_role,
 };
 use guild::storage;
 use guild::types::{Member, Role};
@@ -18,7 +19,7 @@ mod bounty;
 use bounty::{
     approve_bounty, approve_completion, cancel_bounty, claim_bounty, claim_payout, create_bounty,
     expire_bounty, fund_bounty, get_bounty_data, get_guild_bounties_list, release_escrow,
-    submit_work, Bounty,
+    submit_work, Bounty, PayoutSplit,
 };
 
 mod treasury;
@@ -41,8 +42,8 @@ mod reputation;
 use reputation::{
     compute_governance_weight as rep_governance_weight, get_badges as rep_get_badges,
     get_contributions as rep_get_contributions, get_decayed_profile, get_global_reputation,
-    record_contribution as rep_record_contribution, Badge, ContributionRecord, ContributionType,
-    ReputationProfile,
+    get_token_metadata as rep_get_token_metadata, record_contribution as rep_record_contribution,
+    Badge, ContributionRecord, ContributionType, ReputationProfile,
 };
 
 mod governance;
@@ -554,6 +555,37 @@ impl StellarGuildsContract {
     /// true if the member has the required permission, false otherwise
     pub fn has_permission(env: Env, guild_id: u64, address: Address, required_role: Role) -> bool {
         has_permission(&env, guild_id, address, required_role)
+    }
+
+    /// Check whether a guild member has the named system permission.
+    pub fn reque_permissions(
+        env: Env,
+        guild_id: u64,
+        address: Address,
+        permission_key: String,
+    ) -> bool {
+        let member = guild::storage::get_member(&env, guild_id, &address)
+            .unwrap_or_else(|| panic!("Caller is not a member of the guild"));
+        match guild_reque_permissions(&env, &member, permission_key) {
+            Ok(result) => result,
+            Err(err) => panic!("{:?}", err),
+        }
+    }
+
+    /// Permission-only guild system settings update. No storage mutation is performed.
+    pub fn update_guild_info(
+        env: Env,
+        guild_id: u64,
+        title: String,
+        logo: String,
+        description: String,
+        caller: Address,
+    ) -> bool {
+        caller.require_auth();
+        match guild_update_guild_info(&env, guild_id, caller, title, logo, description) {
+            Ok(result) => result,
+            Err(err) => panic!("{:?}", err),
+        }
     }
 
     // ============ Payment Functions ============
@@ -1305,6 +1337,11 @@ impl StellarGuildsContract {
         rep_governance_weight(&env, &address, guild_id, &member.role)
     }
 
+    /// Return JSON metadata for a reputation soulbound token.
+    pub fn get_token_metadata(env: Env, id: u64) -> String {
+        rep_get_token_metadata(&env, id)
+    }
+
     // ============ Milestone Tracking Functions ============
 
     /// Create a new project with milestones
@@ -1778,11 +1815,17 @@ impl StellarGuildsContract {
     /// # Arguments
     /// * `bounty_id` - The ID of the bounty
     /// * `claimer` - Address of the claimer claiming the payout (must be the approved claimer)
+    /// * `recipients` - Payout recipients paired with basis-point allocation
     ///
     /// # Returns
     /// `true` if payout claim was successful
-    pub fn claim_payout(env: Env, bounty_id: u64, claimer: Address) -> bool {
-        claim_payout(&env, bounty_id, claimer)
+    pub fn claim_payout(
+        env: Env,
+        bounty_id: u64,
+        claimer: Address,
+        recipients: Vec<PayoutSplit>,
+    ) -> bool {
+        claim_payout(&env, bounty_id, claimer, recipients)
     }
 
     /// Get bounty by ID
@@ -3076,6 +3119,107 @@ mod tests {
         assert_eq!(
             client.has_permission(&guild_id, &contributor, &Role::Contributor),
             true
+        );
+    }
+
+    #[test]
+    fn test_reque_permissions_allows_update_info_for_admin() {
+        let (env, owner, admin, _, _) = setup();
+        let contract_id = register_and_init_contract(&env);
+        let client = StellarGuildsContractClient::new(&env, &contract_id);
+
+        env.mock_all_auths();
+
+        let name = String::from_str(&env, "Guild");
+        let description = String::from_str(&env, "Description");
+        let guild_id = client.create_guild(&name, &description, &owner);
+
+        client.add_member(&guild_id, &admin, &Role::Admin, &owner);
+
+        assert!(client.reque_permissions(
+            &guild_id,
+            &admin,
+            &String::from_str(&env, "UPDATE_INFO"),
+        ));
+    }
+
+    #[test]
+    #[should_panic(expected = "Unauthorized")]
+    fn test_update_guild_info_denies_member_without_permission() {
+        let (env, owner, admin, member, _) = setup();
+        let contract_id = register_and_init_contract(&env);
+        let client = StellarGuildsContractClient::new(&env, &contract_id);
+
+        env.mock_all_auths();
+
+        let name = String::from_str(&env, "Guild");
+        let description = String::from_str(&env, "Description");
+        let guild_id = client.create_guild(&name, &description, &owner);
+
+        client.add_member(&guild_id, &admin, &Role::Admin, &owner);
+        client.add_member(&guild_id, &member, &Role::Member, &owner);
+
+        client.update_guild_info(
+            &guild_id,
+            &String::from_str(&env, "New Title"),
+            &String::from_str(&env, "ipfs://guild-logo"),
+            &String::from_str(&env, "New Description"),
+            &member,
+        );
+    }
+
+    #[test]
+    fn test_update_guild_info_allows_admin() {
+        let (env, owner, admin, _, _) = setup();
+        let contract_id = register_and_init_contract(&env);
+        let client = StellarGuildsContractClient::new(&env, &contract_id);
+
+        env.mock_all_auths();
+
+        let name = String::from_str(&env, "Guild");
+        let description = String::from_str(&env, "Description");
+        let guild_id = client.create_guild(&name, &description, &owner);
+
+        client.add_member(&guild_id, &admin, &Role::Admin, &owner);
+
+        assert!(client.update_guild_info(
+            &guild_id,
+            &String::from_str(&env, "New Title"),
+            &String::from_str(&env, "ipfs://guild-logo"),
+            &String::from_str(&env, "New Description"),
+            &admin,
+        ));
+    }
+
+    #[test]
+    fn test_get_token_metadata_returns_json() {
+        let (env, _, _, _, _) = setup();
+        let contract_id = register_and_init_contract(&env);
+        let client = StellarGuildsContractClient::new(&env, &contract_id);
+
+        let metadata = client.get_token_metadata(&1u64);
+        assert_eq!(
+            metadata,
+            String::from_str(
+                &env,
+                "{\"name\":\"Stellar Hero\",\"rank\":\"Captain\",\"image\":\"ipfs://stellar-hero-captain\"}"
+            )
+        );
+    }
+
+    #[test]
+    fn test_get_token_metadata_varies_by_id() {
+        let (env, _, _, _, _) = setup();
+        let contract_id = register_and_init_contract(&env);
+        let client = StellarGuildsContractClient::new(&env, &contract_id);
+
+        let metadata = client.get_token_metadata(&3u64);
+        assert_eq!(
+            metadata,
+            String::from_str(
+                &env,
+                "{\"name\":\"Stellar Hero\",\"rank\":\"Master\",\"image\":\"ipfs://stellar-hero-master\"}"
+            )
         );
     }
 

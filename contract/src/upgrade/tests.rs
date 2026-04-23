@@ -1,7 +1,7 @@
 #![cfg(test)]
 
-use super::{logic, storage};
 use super::types::*;
+use super::{logic, storage};
 use crate::StellarGuildsContract;
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::{Address, Env, String};
@@ -106,7 +106,10 @@ fn test_storage_round_trip_and_flags() {
     };
 
     env.as_contract(&contract_id, || {
-        assert_eq!(storage::get_current_version(&env), create_test_version(1, 0, 0));
+        assert_eq!(
+            storage::get_current_version(&env),
+            create_test_version(1, 0, 0)
+        );
         assert_eq!(storage::get_governance_address(&env), governance);
         assert!(!storage::is_emergency_upgrade_enabled(&env));
 
@@ -114,7 +117,13 @@ fn test_storage_round_trip_and_flags() {
         assert_eq!(storage::get_voting_power(&env, &proposer), 3);
 
         storage::store_upgrade_proposal(&env, &proposal);
-        assert_eq!(storage::get_upgrade_proposal(&env, 7).unwrap().version.minor, 2);
+        assert_eq!(
+            storage::get_upgrade_proposal(&env, 7)
+                .unwrap()
+                .version
+                .minor,
+            2
+        );
 
         storage::update_proposal_status(&env, 7, UpgradeStatus::Approved);
         assert_eq!(
@@ -129,7 +138,10 @@ fn test_storage_round_trip_and_flags() {
             estimated_gas: 42,
         };
         storage::store_migration_plan(&env, 7, &migration);
-        assert_eq!(storage::get_migration_plan(&env, 7).unwrap().estimated_gas, 42);
+        assert_eq!(
+            storage::get_migration_plan(&env, 7).unwrap().estimated_gas,
+            42
+        );
 
         storage::set_emergency_upgrade_enabled(&env, true);
         assert!(storage::is_emergency_upgrade_enabled(&env));
@@ -178,7 +190,9 @@ fn test_propose_vote_approve_and_execute_upgrade() {
     });
     env.as_contract(&contract_id, || {
         assert_eq!(
-            storage::get_upgrade_proposal(&env, proposal_id).unwrap().status,
+            storage::get_upgrade_proposal(&env, proposal_id)
+                .unwrap()
+                .status,
             UpgradeStatus::Approved
         );
     });
@@ -187,9 +201,14 @@ fn test_propose_vote_approve_and_execute_upgrade() {
         assert!(logic::execute_upgrade(&env, &governance, proposal_id).is_ok());
     });
     env.as_contract(&contract_id, || {
-        assert_eq!(storage::get_current_version(&env), create_test_version(1, 1, 0));
         assert_eq!(
-            storage::get_upgrade_proposal(&env, proposal_id).unwrap().status,
+            storage::get_current_version(&env),
+            create_test_version(1, 1, 0)
+        );
+        assert_eq!(
+            storage::get_upgrade_proposal(&env, proposal_id)
+                .unwrap()
+                .status,
             UpgradeStatus::Executed
         );
     });
@@ -225,7 +244,9 @@ fn test_vote_can_reject_and_execute_requires_approval() {
     });
     env.as_contract(&contract_id, || {
         assert_eq!(
-            storage::get_upgrade_proposal(&env, proposal_id).unwrap().status,
+            storage::get_upgrade_proposal(&env, proposal_id)
+                .unwrap()
+                .status,
             UpgradeStatus::Rejected
         );
     });

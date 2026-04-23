@@ -5,8 +5,8 @@ mod tests {
     use crate::governance::types::{ExecutionPayload, Proposal, ProposalStatus, ProposalType};
     use crate::guild::types::{Member, Role};
     use crate::interfaces::{
-        bounty, dispute, governance, guild, milestone, payment, reputation, subscription,
-        treasury, ContractCallResult,
+        bounty, dispute, governance, guild, milestone, payment, reputation, subscription, treasury,
+        ContractCallResult,
     };
     use crate::milestone::types::{Milestone, MilestoneStatus};
     use crate::payment::types::DistributionStatus;
@@ -214,7 +214,11 @@ mod tests {
             treasury_id as i128 * 100
         }
 
-        pub fn get_transaction_history(env: Env, treasury_id: u64, _limit: u32) -> Vec<Transaction> {
+        pub fn get_transaction_history(
+            env: Env,
+            treasury_id: u64,
+            _limit: u32,
+        ) -> Vec<Transaction> {
             Vec::from_array(
                 &env,
                 [Transaction {
@@ -242,15 +246,27 @@ mod tests {
         let user = Address::generate(&env);
 
         assert!(matches!(
-            guild::invoke(&env, &contract_id, guild::GuildContractCall::GetMember(7, user.clone())),
+            guild::invoke(
+                &env,
+                &contract_id,
+                guild::GuildContractCall::GetMember(7, user.clone())
+            ),
             Ok(ContractCallResult::Member(_))
         ));
         assert!(matches!(
-            guild::invoke(&env, &contract_id, guild::GuildContractCall::GetAllMembers(7)),
+            guild::invoke(
+                &env,
+                &contract_id,
+                guild::GuildContractCall::GetAllMembers(7)
+            ),
             Ok(ContractCallResult::Members(_))
         ));
         assert_eq!(
-            guild::invoke(&env, &contract_id, guild::GuildContractCall::IsMember(7, user.clone())),
+            guild::invoke(
+                &env,
+                &contract_id,
+                guild::GuildContractCall::IsMember(7, user.clone())
+            ),
             Ok(ContractCallResult::Bool(true))
         );
         assert_eq!(
@@ -267,16 +283,28 @@ mod tests {
             Ok(ContractCallResult::Bounty(_))
         ));
         assert!(matches!(
-            bounty::invoke(&env, &contract_id, bounty::BountyContractCall::GetGuildBounties(7)),
+            bounty::invoke(
+                &env,
+                &contract_id,
+                bounty::BountyContractCall::GetGuildBounties(7)
+            ),
             Ok(ContractCallResult::Bounties(_))
         ));
         assert_eq!(
-            bounty::invoke(&env, &contract_id, bounty::BountyContractCall::ExpireBounty(9)),
+            bounty::invoke(
+                &env,
+                &contract_id,
+                bounty::BountyContractCall::ExpireBounty(9)
+            ),
             Ok(ContractCallResult::Bool(true))
         );
 
         assert!(matches!(
-            dispute::invoke(&env, &contract_id, dispute::DisputeContractCall::GetDispute(3)),
+            dispute::invoke(
+                &env,
+                &contract_id,
+                dispute::DisputeContractCall::GetDispute(3)
+            ),
             Ok(ContractCallResult::Dispute(_))
         ));
         assert_eq!(
@@ -289,7 +317,11 @@ mod tests {
         );
 
         assert!(matches!(
-            governance::invoke(&env, &contract_id, governance::GovernanceContractCall::GetProposal(4)),
+            governance::invoke(
+                &env,
+                &contract_id,
+                governance::GovernanceContractCall::GetProposal(4)
+            ),
             Ok(ContractCallResult::Proposal(_))
         ));
         assert!(matches!(
@@ -302,13 +334,23 @@ mod tests {
         ));
 
         assert!(matches!(
-            milestone::invoke(&env, &contract_id, milestone::MilestoneContractCall::GetMilestone(8)),
+            milestone::invoke(
+                &env,
+                &contract_id,
+                milestone::MilestoneContractCall::GetMilestone(8)
+            ),
             Ok(ContractCallResult::Milestone(_))
         ));
 
         assert_eq!(
-            payment::invoke(&env, &contract_id, payment::PaymentContractCall::GetPoolStatus(1)),
-            Ok(ContractCallResult::DistributionStatus(DistributionStatus::Pending))
+            payment::invoke(
+                &env,
+                &contract_id,
+                payment::PaymentContractCall::GetPoolStatus(1)
+            ),
+            Ok(ContractCallResult::DistributionStatus(
+                DistributionStatus::Pending
+            ))
         );
         assert_eq!(
             payment::invoke(
@@ -319,7 +361,11 @@ mod tests {
             Ok(ContractCallResult::I128(20))
         );
         assert_eq!(
-            payment::invoke(&env, &contract_id, payment::PaymentContractCall::ValidateDistribution(1)),
+            payment::invoke(
+                &env,
+                &contract_id,
+                payment::PaymentContractCall::ValidateDistribution(1)
+            ),
             Ok(ContractCallResult::Bool(true))
         );
 
@@ -358,7 +404,11 @@ mod tests {
         );
 
         assert!(matches!(
-            treasury::invoke(&env, &contract_id, treasury::TreasuryContractCall::GetTreasury(11)),
+            treasury::invoke(
+                &env,
+                &contract_id,
+                treasury::TreasuryContractCall::GetTreasury(11)
+            ),
             Ok(ContractCallResult::Treasury(_))
         ));
         assert_eq!(
@@ -385,14 +435,59 @@ mod tests {
         let bad_contract = Address::generate(&env);
         let user = Address::generate(&env);
 
-        assert!(guild::invoke(&env, &bad_contract, guild::GuildContractCall::GetMember(1, user.clone())).is_err());
-        assert!(bounty::invoke(&env, &bad_contract, bounty::BountyContractCall::GetBounty(1)).is_err());
-        assert!(dispute::invoke(&env, &bad_contract, dispute::DisputeContractCall::GetDispute(1)).is_err());
-        assert!(governance::invoke(&env, &bad_contract, governance::GovernanceContractCall::GetProposal(1)).is_err());
-        assert!(milestone::invoke(&env, &bad_contract, milestone::MilestoneContractCall::GetMilestone(1)).is_err());
-        assert!(payment::invoke(&env, &bad_contract, payment::PaymentContractCall::GetPoolStatus(1)).is_err());
-        assert!(reputation::invoke(&env, &bad_contract, reputation::ReputationContractCall::GetGlobalReputation(user.clone())).is_err());
-        assert!(subscription::invoke(&env, &bad_contract, subscription::SubscriptionContractCall::GetSubscription(1)).is_err());
-        assert!(treasury::invoke(&env, &bad_contract, treasury::TreasuryContractCall::GetTreasury(1)).is_err());
+        assert!(guild::invoke(
+            &env,
+            &bad_contract,
+            guild::GuildContractCall::GetMember(1, user.clone())
+        )
+        .is_err());
+        assert!(bounty::invoke(
+            &env,
+            &bad_contract,
+            bounty::BountyContractCall::GetBounty(1)
+        )
+        .is_err());
+        assert!(dispute::invoke(
+            &env,
+            &bad_contract,
+            dispute::DisputeContractCall::GetDispute(1)
+        )
+        .is_err());
+        assert!(governance::invoke(
+            &env,
+            &bad_contract,
+            governance::GovernanceContractCall::GetProposal(1)
+        )
+        .is_err());
+        assert!(milestone::invoke(
+            &env,
+            &bad_contract,
+            milestone::MilestoneContractCall::GetMilestone(1)
+        )
+        .is_err());
+        assert!(payment::invoke(
+            &env,
+            &bad_contract,
+            payment::PaymentContractCall::GetPoolStatus(1)
+        )
+        .is_err());
+        assert!(reputation::invoke(
+            &env,
+            &bad_contract,
+            reputation::ReputationContractCall::GetGlobalReputation(user.clone())
+        )
+        .is_err());
+        assert!(subscription::invoke(
+            &env,
+            &bad_contract,
+            subscription::SubscriptionContractCall::GetSubscription(1)
+        )
+        .is_err());
+        assert!(treasury::invoke(
+            &env,
+            &bad_contract,
+            treasury::TreasuryContractCall::GetTreasury(1)
+        )
+        .is_err());
     }
 }
