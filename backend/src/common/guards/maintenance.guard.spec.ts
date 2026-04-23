@@ -43,28 +43,30 @@ describe('MaintenanceGuard', () => {
   });
 
   describe('canActivate', () => {
+    let mockRequest: any;
+    let mockResponse: any;
     let mockContext: any;
 
     beforeEach(() => {
+      mockRequest = {
+        method: 'POST',
+        ip: '127.0.0.1',
+        headers: {},
+        connection: { remoteAddress: '127.0.0.1' },
+      };
+      mockResponse = {
+        header: jest.fn(),
+      };
       mockContext = {
         switchToHttp: () => ({
-          getRequest: () => ({
-            method: 'POST',
-            ip: '127.0.0.1',
-            headers: {},
-            connection: { remoteAddress: '127.0.0.1' },
-          }),
-          getResponse: () => ({
-            header: jest.fn(),
-          }),
+          getRequest: () => mockRequest,
+          getResponse: () => mockResponse,
         }),
       };
     });
 
     it('should allow GET requests even if maintenance is on', async () => {
-      mockContext.switchToHttp().getRequest = () => ({
-        method: 'GET',
-      });
+      mockRequest.method = 'GET';
       mockConfigService.get.mockReturnValue('true');
 
       const result = await guard.canActivate(mockContext as ExecutionContext);
@@ -72,7 +74,10 @@ describe('MaintenanceGuard', () => {
     });
 
     it('should allow POST requests if maintenance is off', async () => {
-      mockConfigService.get.mockReturnValue('false');
+      mockConfigService.get.mockImplementation((key) => {
+        if (key === 'API_MAINTENANCE_MODE') return 'false';
+        return null;
+      });
       mockRedisService.get.mockResolvedValue('false');
 
       const result = await guard.canActivate(mockContext as ExecutionContext);
@@ -120,11 +125,7 @@ describe('MaintenanceGuard', () => {
         return null;
       });
 
-      mockContext.switchToHttp().getRequest = () => ({
-        method: 'POST',
-        headers: { 'x-maintenance-bypass': 'secret-key' },
-        connection: { remoteAddress: '127.0.0.1' },
-      });
+      mockRequest.headers = { 'x-maintenance-bypass': 'secret-key' };
 
       const result = await guard.canActivate(mockContext as ExecutionContext);
       expect(result).toBe(true);
