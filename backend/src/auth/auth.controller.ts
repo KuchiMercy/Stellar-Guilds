@@ -7,6 +7,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  Headers,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -66,8 +67,13 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async logout(@Request() req: any) {
-    return this.authService.logout(req.user.userId);
+  async logout(@Request() req: any, @Headers('authorization') authorization: string) {
+    // Extract the token from the Authorization header
+    const token = authorization?.startsWith('Bearer ') 
+      ? authorization.substring(7) 
+      : authorization;
+    
+    return this.authService.logout(req.user.userId, token);
   }
 
   /**

@@ -131,15 +131,16 @@ describe('AuthController', () => {
   describe('logout', () => {
     it('should logout user successfully', async () => {
       const request = { user: { userId: '123' } };
+      const authorization = 'Bearer test-token-123';
 
       jest
         .spyOn(authService, 'logout')
         .mockResolvedValue({ message: 'Logged out successfully' });
 
-      const result = await controller.logout(request);
+      const result = await controller.logout(request, authorization);
 
       expect(result.message).toEqual('Logged out successfully');
-      expect(authService.logout).toHaveBeenCalledWith('123');
+      expect(authService.logout).toHaveBeenCalledWith('123', 'test-token-123');
     });
   });
 

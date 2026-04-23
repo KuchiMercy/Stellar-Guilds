@@ -16,7 +16,7 @@ import { QueueModule } from './queue/queue.module';
 import { ProxylModule } from './proxyl/proxyl.module';
 import { ReputationModule } from './reputation/reputation.module';
 import { ErrorReportingModule } from './common/modules/error-reporting.module';
-import { RedisService } from './common/services/redis.service';
+import { RedisModule } from './common/services/redis.module';
 import { MaintenanceGuard } from './common/guards/maintenance.guard';
 
 @Module({
@@ -32,6 +32,7 @@ import { MaintenanceGuard } from './common/guards/maintenance.guard';
     ]),
     LoggerModule,
     ErrorReportingModule,
+    RedisModule,
     PrismaModule,
     AuthModule,
     UserModule,
@@ -46,7 +47,6 @@ import { MaintenanceGuard } from './common/guards/maintenance.guard';
   controllers: [AppController],
   providers: [
     AppService,
-    RedisService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
