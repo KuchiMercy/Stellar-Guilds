@@ -22,6 +22,7 @@ import { ErrorReportingModule } from './common/modules/error-reporting.module';
 import { RedisModule } from './common/services/redis.module';
 import { MaintenanceGuard } from './common/guards/maintenance.guard';
 import { ErrorCodeTestController } from './common/controllers/error-code-test.controller';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ErrorCodeTestController } from './common/controllers/error-code-test.co
           .default('7d'),
       }),
     }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 60 seconds in milliseconds
