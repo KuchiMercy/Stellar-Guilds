@@ -3,6 +3,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -12,6 +13,7 @@ import { TokenBlacklistService } from './services/token-blacklist.service';
 import { RedisService } from '../common/services/redis.service';
 import * as bcrypt from 'bcrypt';
 import { ethers } from 'ethers';
+import { randomUUID } from 'crypto';
 import { AppUnauthorizedException } from '../common/exceptions/custom-http.exceptions';
 import { StellarErrorCode } from '../common/errors/stellar-error-code.enum';
 import {
@@ -25,6 +27,8 @@ import {
 export class AuthService {
   private readonly jwtSecret: string;
   private readonly refreshTokenSecret: string;
+  private readonly jwtAccessExpiration: string | number;
+  private readonly jwtRefreshExpiration: string | number;
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
@@ -39,6 +43,10 @@ export class AuthService {
     this.refreshTokenSecret =
       this.configService.get<string>('REFRESH_TOKEN_SECRET') ||
       'your-refresh-secret-key';
+    this.jwtAccessExpiration =
+      this.configService.get<string | number>('JWT_ACCESS_EXPIRATION') || '15m';
+    this.jwtRefreshExpiration =
+      this.configService.get<string | number>('JWT_REFRESH_EXPIRATION') || '7d';
   }
 
   /**
@@ -349,12 +357,12 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.jwtSecret,
-      expiresIn: 900, // 15 minutes in seconds
+      expiresIn: this.jwtAccessExpiration,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.refreshTokenSecret,
-      expiresIn: 604800, // 7 days in seconds
+      expiresIn: this.jwtRefreshExpiration,
     });
 
     return { accessToken, refreshToken };
@@ -405,5 +413,60 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  /**
+   * Generate a mock 2FA secret for setup
+   */
+  async generate2faSecret(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const secret = randomUUID().replace(/-/g, '').substring(0, 16).toUpperCase();
+
+    // In a real implementation we might store this as 'pending' but here we just return it
+    return {
+      secret,
+      otpAuthUrl: `otpauth://totp/StellarGuilds:${user.email}?secret=${secret}&issuer=StellarGuilds`,
+    };
+  }
+
+  /**
+   * Enable 2FA for a user after verifying a code
+   */
+  async enable2fa(userId: string, code: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    // Mock verification: accept '123456' as valid for setup
+    if (code !== '123456') {
+      throw new BadRequestException('Invalid 2FA code');
+    }
+
+    // Generate a permanent secret (mocked)
+    const secret = randomUUID().replace(/-/g, '').substring(0, 32);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorSecret: secret, // In production, this should be encrypted
+        isTwoFactorEnabled: true,
+      },
+    });
+
+    return { message: '2FA enabled successfully' };
+  }
+
+  /**
+   * Verify 2FA code (mocked)
+   */
+  async verify2fa(userId: string, code: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.isTwoFactorEnabled || !user.twoFactorSecret) {
+      return false;
+    }
+
+    // Mock verification: accept '123456'
+    return code === '123456';
   }
 }

@@ -26,7 +26,7 @@ export class UserService {
   constructor(
     private prisma: PrismaService,
     private storageService: StorageService,
-  ) {}
+  ) { }
 
   /**
    * Get user by ID with public profile information
@@ -44,6 +44,7 @@ export class UserService {
         avatarUrl: true,
         profileBio: true,
         profileUrl: true,
+        technicalTags: true,
         discordHandle: true,
         twitterHandle: true,
         githubHandle: true,
@@ -141,6 +142,11 @@ export class UserService {
         }),
         ...(updateDto.profileUrl !== undefined && {
           profileUrl: updateDto.profileUrl,
+        }),
+        ...(updateDto.technicalTags !== undefined && {
+          technicalTags: updateDto.technicalTags.map((tag) =>
+            tag.trim().toLowerCase(),
+          ),
         }),
         ...(updateDto.discordHandle !== undefined && {
           discordHandle: updateDto.discordHandle,
@@ -401,7 +407,7 @@ export class UserService {
    * Search and filter users (paginated)
    */
   async searchUsers(searchDto: SearchUserDto) {
-    const { query, role, isActive, skip = 0, take = 20 } = searchDto;
+    const { query, role, isActive, tags, skip = 0, take = 20 } = searchDto;
 
     // Build where clause
     const where: any = {};
@@ -423,6 +429,12 @@ export class UserService {
       where.isActive = isActive;
     }
 
+    if (tags && tags.length > 0) {
+      where.technicalTags = {
+        hasSome: tags.map((tag) => tag.toLowerCase()),
+      };
+    }
+
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
@@ -436,6 +448,7 @@ export class UserService {
           avatarUrl: true,
           profileBio: true,
           profileUrl: true,
+          technicalTags: true,
           discordHandle: true,
           twitterHandle: true,
           githubHandle: true,
@@ -513,6 +526,51 @@ export class UserService {
     });
 
     return updated;
+  }
+
+  /**
+   * GDPR-compliant profile deletion (soft-delete and scrubbing)
+   */
+  async deleteMe(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 1. Scrub personal information
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        firstName: 'Deleted',
+        lastName: 'User',
+        username: `deleted_user_${userId.substring(0, 8)}`,
+        email: `deleted_${userId}@stellar-guilds.local`, // Keep email unique but anonymized
+        bio: null,
+        avatarUrl: null,
+        profileBio: null,
+        profileUrl: null,
+        discordHandle: null,
+        twitterHandle: null,
+        githubHandle: null,
+        backgroundCid: null,
+        isActive: false,
+        deletedAt: new Date(),
+        refreshToken: null, // Invalidate current session
+      },
+    });
+
+    // 2. Remove all active API keys
+    await this.prisma.apiKey.deleteMany({
+      where: { userId },
+    });
+
+    return {
+      message:
+        'Your profile has been deleted and personal data has been scrubbed.',
+    };
   }
 
   /**
