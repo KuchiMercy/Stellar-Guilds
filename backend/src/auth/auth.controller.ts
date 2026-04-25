@@ -11,9 +11,11 @@ import {
   HttpStatus,
   Headers,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { ApiKeyService } from './services/api-key.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RefreshThrottlerGuard } from './guards/refresh-throttler.guard';
 import {
   RegisterDto,
   LoginDto,
@@ -62,6 +64,8 @@ export class AuthController {
    * Refresh access token
    */
   @Post('refresh')
+  @UseGuards(RefreshThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 300000 } })
   @HttpCode(HttpStatus.OK)
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto);

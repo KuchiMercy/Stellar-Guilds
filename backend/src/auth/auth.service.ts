@@ -3,13 +3,17 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { TokenBlacklistService } from './services/token-blacklist.service';
+import { RedisService } from '../common/services/redis.service';
 import * as bcrypt from 'bcrypt';
 import { ethers } from 'ethers';
+import { AppUnauthorizedException } from '../common/exceptions/custom-http.exceptions';
+import { StellarErrorCode } from '../common/errors/stellar-error-code.enum';
 import {
   RegisterDto,
   LoginDto,
@@ -21,12 +25,14 @@ import {
 export class AuthService {
   private readonly jwtSecret: string;
   private readonly refreshTokenSecret: string;
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
     private prisma: PrismaService,
     private tokenBlacklistService: TokenBlacklistService,
+    private redisService: RedisService,
   ) {
     this.jwtSecret =
       this.configService.get<string>('JWT_SECRET') || 'your-secret-key';
@@ -118,13 +124,17 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new AppUnauthorizedException('Invalid email or password', {
+        errorCode: StellarErrorCode.UNAUTHORIZED,
+      });
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new AppUnauthorizedException('Invalid email or password', {
+        errorCode: StellarErrorCode.UNAUTHORIZED,
+      });
     }
 
     // Update last login
@@ -173,7 +183,9 @@ export class AuthService {
     // Verify signature
     const signerAddress = await this.verifySignature(message, signature);
     if (signerAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-      throw new UnauthorizedException('Invalid signature');
+      throw new AppUnauthorizedException('Invalid signature', {
+        errorCode: StellarErrorCode.UNAUTHORIZED,
+      });
     }
 
     // Find or create user
@@ -240,6 +252,8 @@ export class AuthService {
     const { refreshToken } = refreshTokenDto;
 
     try {
+      await this.trackRefreshAttempt(refreshToken);
+
       // Verify refresh token
       const payload = this.jwtService.verify(refreshToken, {
         secret: this.refreshTokenSecret,
@@ -251,7 +265,9 @@ export class AuthService {
       });
 
       if (!user || user.refreshToken !== refreshToken) {
-        throw new UnauthorizedException('Invalid refresh token');
+        throw new AppUnauthorizedException('Invalid refresh token', {
+          errorCode: StellarErrorCode.UNAUTHORIZED,
+        });
       }
 
       // Generate new tokens
@@ -280,7 +296,22 @@ export class AuthService {
         },
       };
     } catch (error) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new AppUnauthorizedException('Invalid refresh token', {
+        errorCode: StellarErrorCode.UNAUTHORIZED,
+      });
+    }
+  }
+
+  private async trackRefreshAttempt(refreshToken: string) {
+    const decoded = this.jwtService.decode(refreshToken) as { sub?: string } | null;
+    const trackerId = decoded?.sub ?? 'anonymous';
+    const key = `auth:refresh:attempts:${trackerId}`;
+    const current = await this.redisService.get(key);
+    const nextCount = (current ? Number(current) : 0) + 1;
+    await this.redisService.set(key, String(nextCount), 60 * 60 * 24);
+
+    if (nextCount >= 20) {
+      this.logger.warn(`Suspicious Refresh Activity for user ${trackerId}`);
     }
   }
 
@@ -368,7 +399,9 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new AppUnauthorizedException('User not found', {
+        errorCode: StellarErrorCode.UNAUTHORIZED,
+      });
     }
 
     return user;
