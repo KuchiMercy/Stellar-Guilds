@@ -20,6 +20,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GuildRoleGuard } from './guards/guild-role.guard';
 import { GuildRoles } from './decorators/guild-roles.decorator';
 import { GuildService } from './guild.service';
+import { ApplicationService } from './application.service';
 import { CreateGuildDto } from './dto/create-guild.dto';
 import { UpdateGuildDto } from './dto/update-guild.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
@@ -43,6 +44,7 @@ export class GuildController {
   constructor(
     private readonly guildService: GuildService,
     private readonly bulkInviteService: GuildBulkInviteService,
+    private readonly applicationService: ApplicationService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -350,5 +352,30 @@ export class GuildController {
     @Request() req: any,
   ) {
     return this.guildService.updateMembership(req.user.userId, guildId, dto);
+  }
+
+  /**
+   * Get moderation queue for guild applications (high-level admins only)
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/moderation-queue')
+  async getModerationQueue(
+    @Param('id') guildId: string,
+    @Request() req: any,
+  ) {
+    return this.applicationService.getModerationQueue(guildId, req.user.userId);
+  }
+
+  /**
+   * Move application from MODERATION_PENDING to PENDING (high-level admins only)
+   */
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/moderation-queue/:applicationId/move-to-pending')
+  async moveToPending(
+    @Param('id') guildId: string,
+    @Param('applicationId') applicationId: string,
+    @Request() req: any,
+  ) {
+    return this.applicationService.moveToPending(applicationId, req.user.userId);
   }
 }

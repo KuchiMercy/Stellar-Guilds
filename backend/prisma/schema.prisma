@@ -165,6 +165,7 @@ model GuildMembership {
 }
 
 enum MembershipStatus {
+  MODERATION_PENDING
   PENDING
   APPROVED
   REJECTED
