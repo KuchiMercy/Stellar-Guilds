@@ -39,7 +39,7 @@ export class TreasuryLowBalanceAlertService {
 
   async scanAllGuilds(): Promise<LowBalanceAlert[]> {
     const guilds = await this.prisma.guild.findMany({ select: { id: true } });
-    const alerts = await Promise.all(guilds.map(g => this.checkGuildTreasury(g.id)));
+    const alerts = await Promise.all(guilds.map((g: { id: string }) => this.checkGuildTreasury(g.id)));
     return alerts.filter((a): a is LowBalanceAlert => a !== null);
   }
 }

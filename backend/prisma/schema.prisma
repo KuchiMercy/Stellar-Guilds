@@ -374,3 +374,31 @@ model ApiKey {
   @@index([userId])
   @@map("api_keys")
 }
+
+model ReputationEntry {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String
+  points    Int
+  reason    String?
+  metadata  Json?
+
+  @@index([userId])
+  @@map("reputation_entries")
+}
+
+model GuildPayout {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  guildId     String
+  recipientId String
+  amount      Decimal
+  asset       String
+  txHash      String?
+  status      String   @default("PENDING")
+  processedAt DateTime?
+
+  @@index([guildId])
+  @@index([recipientId])
+  @@map("guild_payouts")
+}

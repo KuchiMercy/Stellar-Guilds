@@ -1,7 +1,7 @@
 import * as winston from 'winston';
-import { Logger as NestLogger } from '@nestjs/common';
+import { ConsoleLogger } from '@nestjs/common';
 
-export class WinstonLogger extends NestLogger {
+export class WinstonLogger extends ConsoleLogger {
   private winstonLogger!: winston.Logger;
 
   constructor(context?: string) {

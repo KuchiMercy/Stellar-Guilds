@@ -3,7 +3,7 @@ import { CreateReputationDto } from './dto/create-reputation.dto';
 import { UpdateReputationDto } from './dto/update-reputation.dto';
 
 // Mock reputation event shape
-interface ReputationEvent {
+export interface ReputationEvent {
   id: string;
   userId: string;
   points: number;

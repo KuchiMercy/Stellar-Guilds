@@ -5,6 +5,8 @@ import { QUEUE_NAMES } from './queue.constants';
 import { DummyProcessor } from './processors/dummy.processor';
 import { QueueService } from './queue.service';
 import { QueueController } from './queue.controller';
+import { DlqService } from './dlq.service';
+import { DlqController } from './dlq.controller';
 
 @Module({
   imports: [
@@ -48,8 +50,8 @@ import { QueueController } from './queue.controller';
       },
     ),
   ],
-  controllers: [QueueController],
-  providers: [QueueService, DummyProcessor],
-  exports: [QueueService, BullModule],
+  controllers: [QueueController, DlqController],
+  providers: [QueueService, DummyProcessor, DlqService],
+  exports: [QueueService, BullModule, DlqService],
 })
 export class QueueModule {}

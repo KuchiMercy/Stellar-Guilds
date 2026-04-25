@@ -86,6 +86,18 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return this.prisma.treasuryTransaction;
   }
 
+  get apiKey() {
+    return this.prisma.apiKey;
+  }
+
+  get reputationEntry() {
+    return this.prisma.reputationEntry;
+  }
+
+  get guildPayout() {
+    return this.prisma.guildPayout;
+  }
+
   // Expose Prisma utilities
   get $transaction() {
     return this.prisma.$transaction.bind(this.prisma);

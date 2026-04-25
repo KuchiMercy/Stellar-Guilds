@@ -325,7 +325,7 @@ export class GuildController {
   @UseInterceptors(FileInterceptor('file'))
   async bulkInvite(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: any,
     @Request() req: any,
   ) {
     if (!file) {

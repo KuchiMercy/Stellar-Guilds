@@ -29,7 +29,7 @@ export class GuildPayoutHistoryService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return payouts.map(p => {
+    return payouts.map((p: any) => {
       const record: PayoutRecord = {
         id: p.id,
         guildId: p.guildId,
