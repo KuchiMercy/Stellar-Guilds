@@ -65,6 +65,7 @@ export class UserController {
   /**
    * Search and filter users (must come before :userId to avoid route conflicts)
    */
+  @Get()
   @Get('search')
   @HttpCode(HttpStatus.OK)
   async searchUsers(@Query() searchDto: SearchUserDto) {

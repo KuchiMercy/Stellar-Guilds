@@ -80,6 +80,7 @@ model User {
   // Profile fields
   profileBio    String?
   profileUrl    String?
+  technicalTags String[] @default([])
   discordHandle String?
   twitterHandle String?
   githubHandle  String?
