@@ -13,6 +13,14 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { HealthModule } from './health/health.module';
 import { LoggerModule } from './logger/logger.module';
+import { QueueModule } from './queue/queue.module';
+import { ProxylModule } from './proxyl/proxyl.module';
+import { ReputationModule } from './reputation/reputation.module';
+import { VersionModule } from './version/version.module';
+import { SearchModule } from './search/search.module';
+import { ErrorReportingModule } from './common/modules/error-reporting.module';
+import { RedisModule } from './common/services/redis.module';
+import { MaintenanceGuard } from './common/guards/maintenance.guard';
 
 @Module({
   imports: [
@@ -34,6 +42,8 @@ import { LoggerModule } from './logger/logger.module';
       },
     ]),
     LoggerModule,
+    ErrorReportingModule,
+    RedisModule,
     PrismaModule,
     AuthModule,
     UserModule,
@@ -41,6 +51,11 @@ import { LoggerModule } from './logger/logger.module';
     BountyModule,
     SocialModule,
     HealthModule,
+    QueueModule,
+    ProxylModule,
+    ReputationModule,
+    VersionModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [
@@ -48,6 +63,10 @@ import { LoggerModule } from './logger/logger.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: MaintenanceGuard,
     },
   ],
 })

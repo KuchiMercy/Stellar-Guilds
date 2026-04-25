@@ -7,7 +7,11 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RoleGuard } from './guards/role.guard';
+import { TokenBlacklistService } from './services/token-blacklist.service';
+import { ApiKeyService } from './services/api-key.service';
+import { ApiKeyGuard } from './guards/api-key.guard';
 import { PrismaModule } from '../prisma/prisma.module';
+import { RedisModule } from '../common/services/redis.module';
 
 const DEFAULT_JWT_ACCESS_EXPIRATION = '15m';
 
@@ -16,6 +20,7 @@ const DEFAULT_JWT_ACCESS_EXPIRATION = '15m';
     ConfigModule,
     PrismaModule,
     PassportModule,
+    RedisModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -30,7 +35,7 @@ const DEFAULT_JWT_ACCESS_EXPIRATION = '15m';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, RoleGuard],
-  exports: [AuthService, JwtStrategy, JwtAuthGuard, RoleGuard, PassportModule],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard, RoleGuard, TokenBlacklistService, ApiKeyService, ApiKeyGuard],
+  exports: [AuthService, JwtStrategy, JwtAuthGuard, RoleGuard, PassportModule, ApiKeyService, ApiKeyGuard],
 })
 export class AuthModule {}
