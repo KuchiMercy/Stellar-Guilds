@@ -74,6 +74,9 @@ describe('TreasuryService', () => {
     });
 
     it('should handle duplicate txHash gracefully (idempotency)', async () => {
+      // Reset mocks to ensure clean test
+      jest.clearAllMocks();
+      
       const existingTransaction = {
         id: 'tx-existing',
         ...mockEvent,
