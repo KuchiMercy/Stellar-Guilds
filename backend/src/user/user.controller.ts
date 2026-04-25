@@ -116,6 +116,32 @@ export class UserController {
   }
 
   /**
+   * Add a guild to user's favorites
+   */
+  @Post('me/favorites/:guildId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async addFavoriteGuild(
+    @Request() req: any,
+    @Param('guildId') guildId: string,
+  ) {
+    return this.userService.addFavoriteGuild(req.user.userId, guildId);
+  }
+
+  /**
+   * Remove a guild from user's favorites
+   */
+  @Delete('me/favorites/:guildId')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async removeFavoriteGuild(
+    @Request() req: any,
+    @Param('guildId') guildId: string,
+  ) {
+    return this.userService.removeFavoriteGuild(req.user.userId, guildId);
+  }
+
+  /**
    * Upload user avatar
    * Accepts multipart/form-data with a single "file" field.
    * File must be JPEG, PNG, or WebP format and less than 5MB.

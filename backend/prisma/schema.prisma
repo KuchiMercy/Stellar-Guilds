@@ -103,6 +103,7 @@ model User {
   privacySettings    PrivacySettings?
   bountyApplications BountyApplication[]
   bountyPayouts      BountyPayout[]
+  favoriteGuilds     UserFavoriteGuild[] @relation("UserFavoriteGuilds")
   apiKeys            ApiKey[]
 
   @@index([role])
@@ -127,9 +128,10 @@ model Guild {
   isActive    Boolean   @default(true)
 
   // Relations
-  owner       User              @relation("UserOwnerGuilds", fields: [ownerId], references: [id])
+  owner       User                @relation("UserOwnerGuilds", fields: [ownerId], references: [id])
   memberships GuildMembership[]
-  bounties    Bounty[]          @relation("GuildBounties")
+  bounties    Bounty[]            @relation("GuildBounties")
+  favoritedBy UserFavoriteGuild[] @relation("GuildFavoritedBy")
 
   @@index([ownerId])
   @@index([isActive])
@@ -164,10 +166,25 @@ model GuildMembership {
   @@map("guild_memberships")
 }
 
+model UserFavoriteGuild {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  userId    String
+  guildId   String
+
+  user  User  @relation("UserFavoriteGuilds", fields: [userId], references: [id], onDelete: Cascade)
+  guild Guild @relation("GuildFavoritedBy", fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, guildId])
+  @@map("user_favorite_guilds")
+}
+
+
 enum MembershipStatus {
   PENDING
   APPROVED
   REJECTED
+  REVOKED
 }
 
 model Bounty {

@@ -5,6 +5,7 @@ export class WinstonLogger extends ConsoleLogger {
   private winstonLogger!: winston.Logger;
 
   constructor(context?: string) {
+    super(context || 'Application');
     super(context || 'App');
     this.winstonLogger = this.createWinstonLogger();
   }
@@ -16,6 +17,7 @@ export class WinstonLogger extends ConsoleLogger {
       winston.format.splat(),
       winston.format.json(),
       winston.format.printf(
+        ({ timestamp, level, message, context, ...meta }: any) => {
         ({
           timestamp,
           level,
